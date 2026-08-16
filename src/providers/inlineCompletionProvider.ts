@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import {ChatMessage, PendingCompletion} from "../utils/types"
+import {ChatMessage, PendingCompletion, ReplacementEdit} from "../utils/types"
 import { ApiClient } from '../api/apiClient';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
@@ -18,9 +18,15 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
             this.log(`provideInlinecompletionitems called at ${position.line}:${position.character}`)
+            //stage 1
             const pendingCompletionResult=this.handleExistingPendingCompletion(document,position);
             if(pendingCompletionResult !== undefined){
                 return pendingCompletionResult;
+            }
+            //stage 3
+            const tryContinuePredictionResult=this.tryContinuePrediction(document,position)
+            if (tryContinuePredictionResult !== undefined){
+                return tryContinuePredictionResult
             }
             const prefix = document.getText(
                 new vscode.Range(new vscode.Position(0, 0), position)
@@ -41,20 +47,61 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 this.log(`Api Error: ${error}`);
                 return null
             }
-            this.pendingCompletion={
-                documentUri:document.uri.toString(),
-                edit:{
-                    startPosition:position,
-                    insertText:completion
-                }
-            }
 
-            
-            return this.createInlineCompletionList(completion,)
+            const edit:ReplacementEdit={
+                insertText:completion,
+                startPosition:position
+
+            }
+            return this.activateCompletion(document,edit);
+
         } catch (error: any) {
             this.log(`unexpected error: ${error.message}`)
             return null;
         }
+    }
+    private activateCompletion(document:vscode.TextDocument,edit:ReplacementEdit
+    ):vscode.InlineCompletionList{
+        this.lastCompletionText=edit.insertText;
+        this.lastCompletionPosition=edit.startPosition;
+        this.lastCompletionUri=document.uri.toString();
+        this.pendingCompletion={
+            documentUri:document.uri.toString(),
+            edit
+        }
+        return this.createInlineCompletionList(edit.insertText)
+    }
+
+    private tryContinuePrediction(document:vscode.TextDocument,position:vscode.Position):vscode.InlineCompletionList|null|undefined{
+        if(!this.lastCompletionText||!this.lastCompletionPosition||this.lastCompletionUri !== document.uri.toString()){
+            return undefined
+        }
+        const charSinceCompletion=position.character-this.lastCompletionPosition.character
+        if(position.line!=this.lastCompletionPosition.line || charSinceCompletion<=0){
+            return undefined
+        }
+
+        const typedText=document.getText(
+            new vscode.Range(this.lastCompletionPosition,position)
+        )
+        if (charSinceCompletion<=this.lastCompletionText.length && this.lastCompletionText.startsWith(typedText)){
+            const remaining=this.lastCompletionText.slice(typedText.length)
+
+            if (remaining){
+                this.log(`Continuing prediction: Typed "${typedText}",remaining "${remaining}"`)
+                return this.createInlineCompletionList(remaining,new vscode.Range(position,position))
+            }
+
+            this.log(`user completed entire prediction`);
+            this.lastCompletionText='';
+            this.lastCompletionPosition=null;
+            return null;
+        }
+
+        this.log(`Divergence Detected: expected ${this.lastCompletionText}, got ${typedText}`);
+        this.lastCompletionText='';
+        this.lastCompletionPosition=null;
+        return undefined
     }
 
     private createInlineCompletionList(text:string,range?:vscode.Range):vscode.InlineCompletionList{
