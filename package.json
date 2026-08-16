@@ -9,9 +9,41 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished" 
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration":{
+      "title": "Textify",
+      "properties": {
+        "textify.fireworksApiKey":{
+          "type":"string",
+          "default":"",
+          "description": "Fireworks Api Key "
+        },
+        "textify.openrouterApiKey":{
+          "type":"string",
+          "default":"",
+          "description": "Openrouter Api Key "
+        },
+        "textify.groqApiKey":{
+          "type":"string",
+          "default":"",
+          "description": "Groq Api Key"
+        },
+        "textify.model":{
+          "type":"string",
+          "default":"qwen/qwen3-32b",
+          "description": "AI models to use for completions"
+        },
+        "textify.maxTokens":{
+          "type":"number",
+          "default":500,
+          "description": "Maximum tokens to generate"
+        }
+      }
+    },
     "commands": [
       {
         "command": "textify.helloWorld",
