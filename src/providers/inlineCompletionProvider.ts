@@ -23,6 +23,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             if(pendingCompletionResult !== undefined){
                 return pendingCompletionResult;
             }
+            //stage 2 
             //stage 3
             const tryContinuePredictionResult=this.tryContinuePrediction(document,position)
             if (tryContinuePredictionResult !== undefined){
