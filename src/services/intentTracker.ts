@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { IntentEntry, IntentType, PendingIntent } from "../utils/types";
-import { start } from "repl";
+import * as crypto from "crypto"
 
 export class IntentTracker implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
@@ -13,6 +13,13 @@ export class IntentTracker implements vscode.Disposable {
 
     constructor() {
         this.registerListeners()
+    }
+
+    computeHash():string{
+        const content=this.buffer.map(
+            e=>`${e.filePath}:${e.timestamp}:${e.type}:${e.content}`
+        ).join("|");
+        return crypto.createHash('md5').update(content).digest('hex').slice(0,16)
     }
     private registerListeners() {
         //Track the text changes in a document
@@ -258,10 +265,16 @@ export class IntentTracker implements vscode.Disposable {
 
     }
     private handleActiveEditorChange(editor: vscode.TextEditor | undefined): void {
+        if(!this.pendingIntent) return;
+        if(!editor|| editor.document.uri.fsPath !== this.pendingIntent.filePath){
+            this.finalizeIntent();
+        }
 
     }
     dispose() {
-        throw new Error("Method not implemented.");
+        this.finalizeIntent();
+        this.disposables.forEach(d=>d.dispose());
+        this.clearFlushTimeout();
     }
 
 }

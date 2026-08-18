@@ -5,7 +5,15 @@ export interface CacheEntry<V> {
     lastAccessed: number;
     accessCount: number;
 }
-
+export function buildCacheKey(...parts:Array<string | number>):string{
+    let key=''
+    for(const part of parts){
+        const typePrefix=typeof part === 'number'? 'n':'s'
+        const value=String(part)
+        key+=`${typePrefix}${value.length}:${value}|`
+    }
+    return key;
+}
 export class BoundedCache<V> {
     private cache: Map<string, CacheEntry<V>> = new Map();
     private groupIndex: Map<string, Set<string>> = new Map();
@@ -15,6 +23,23 @@ export class BoundedCache<V> {
             throw new Error('maxSize must be atleast 1');
 
         }
+    }
+
+    invalidateGroup(groupKey:string):number{
+        const keys=this.groupIndex.get(groupKey);
+        let count=0
+
+        if(!keys){
+            return 0
+        }
+
+        for(const key of keys){
+            if(this.cache.delete(key)){
+                count++
+            }
+        }
+        this.groupIndex.delete(groupKey);
+        return count;
     }
     get(key: string): V | undefined {
         const entry=this.cache.get(key);
@@ -108,6 +133,11 @@ export class BoundedCache<V> {
                 }
             }
         }
+    }
+    clear(){
+        this.cache.clear();
+        this.groupIndex.clear();
+        
     }
 
 

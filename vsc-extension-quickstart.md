@@ -42,3 +42,12 @@
 * [Publish your extension](https://code.visualstudio.com/api/working-with-extensions/publishing-extension) on the VS Code extension marketplace.
 * Automate builds by setting up [Continuous Integration](https://code.visualstudio.com/api/working-with-extensions/continuous-integration).
 * Integrate to the [report issue](https://code.visualstudio.com/api/get-started/wrapping-up#issue-reporting) flow to get issue and feature requests reported by users.
+
+
+
+
+    //future task:create  a dropdown menu so that the user can select which model to choose
+    //future task:apply rate limiting
+    //future task:implement langchain langgraph and functionality to use any api
+    //future task: if using openrouter then is there an option to show which modles are available how many tokens are left and auto switch so that it can auto switch between models if one model is exhausted
+    // future task:small settings tab in the bottom and a switch to turn on and off immideately

@@ -8,6 +8,8 @@ export interface TabCompletionConfig{
     model:string;
     maxTokens:number;
     //cache settings
+    completionCacheMaxEntries:number;
+    completionCacheTtlMs:number;
 }
 
 
@@ -16,7 +18,9 @@ const DEFAULTS:TabCompletionConfig={
     openrouterApiKey:'',
     groqApiKey:'',
     model:'qwen/qwen3-32b',
-    maxTokens:500
+    maxTokens:500,
+    completionCacheMaxEntries:100,
+    completionCacheTtlMs:30000
 }
 
 
@@ -58,7 +62,9 @@ export class ConfigurationService implements vscode.Disposable{
             openrouterApiKey:config.get<string>('openrouterApiKey',DEFAULTS.openrouterApiKey),
             groqApiKey:config.get<string>('groqApiKey',DEFAULTS.groqApiKey),
             model:config.get<string>('model',DEFAULTS.model),
-            maxTokens:config.get<number>('maxTokens',DEFAULTS.maxTokens)
+            maxTokens:config.get<number>('maxTokens',DEFAULTS.maxTokens),
+            completionCacheMaxEntries:config.get<number>('completionCacheMaxEntries',DEFAULTS.completionCacheMaxEntries),
+            completionCacheTtlMs:config.get<number>('completionCacheTtlMs',DEFAULTS.completionCacheTtlMs)
         }
     }
 
@@ -77,6 +83,8 @@ export class ConfigurationService implements vscode.Disposable{
     get groqApiKey():string {return this.cachedConfig.groqApiKey}
     get openrouterApiKey():string {return this.cachedConfig.openrouterApiKey}
     get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey}
+    get completionCacheMaxEntries():number {return this.cachedConfig.completionCacheMaxEntries}
+    get completionCacheTtlMs():number {return this.cachedConfig.completionCacheTtlMs}
 
     onConfigChange(callback:(config:TabCompletionConfig)=>void):vscode.Disposable{
         this.changeListeners.add(callback);

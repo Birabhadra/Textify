@@ -1,10 +1,14 @@
 import * as vscode from 'vscode'
 import {ChatMessage, PendingCompletion, ReplacementEdit} from "../utils/types"
 import { ApiClient } from '../api/apiClient';
+import { IntentTracker } from '../services/intentTracker';
+import { CompletionCache } from '../cache/completionCache';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly apiclient: ApiClient;
+    private readonly intentTracker:IntentTracker;
+    private readonly completionCache:CompletionCache;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
@@ -14,6 +18,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     constructor(outputChannel: vscode.OutputChannel) {
         this.outputChannel = outputChannel;
         this.apiclient = new ApiClient(outputChannel);
+        this.intentTracker=new IntentTracker();
+        this.completionCache=new CompletionCache();
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
@@ -24,6 +30,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 return pendingCompletionResult;
             }
             //stage 2 
+            const editHistoryHash=this.intentTracker.computeHash()
+            const cachedResult=this.tryCachedCompletion(
+                document,position,editHistoryHash
+            )
+
+            if(cachedResult){
+                return cachedResult
+            }
             //stage 3
             const tryContinuePredictionResult=this.tryContinuePrediction(document,position)
             if (tryContinuePredictionResult !== undefined){
@@ -39,7 +53,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             let completion=''
             try {
                 const messages:ChatMessage[]=[
-                    { role: 'system', content: 'complete the code.Output Only the completion,no explanation' },
+                    { role: 'system', content: 'complete the code.Output Only the completion,no explanation and no mention of language , Return only the raw source code. Do not wrap the code in Markdown code fences such as ```javascript or ```.' },
                     { role: 'user', content: prefix },
                 ]
                 completion=await this.callCompletionApi(messages,token)
@@ -48,18 +62,32 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 this.log(`Api Error: ${error}`);
                 return null
             }
-
             const edit:ReplacementEdit={
                 insertText:completion,
                 startPosition:position
 
             }
+            this.completionCache.set(document,position,editHistoryHash,edit)
+
+
             return this.activateCompletion(document,edit);
 
         } catch (error: any) {
             this.log(`unexpected error: ${error.message}`)
             return null;
         }
+    }
+
+    private tryCachedCompletion(document:vscode.TextDocument,position:vscode.Position,editHistory:string):vscode.InlineCompletionList|undefined{
+        const cachedEdit=this.completionCache.get(document,position,editHistory)
+
+        this.log(`cache hit ${cachedEdit?.insertText}`)
+        if(!cachedEdit){
+            return undefined
+        }
+
+        return this.activateCompletion(document,cachedEdit)
+
     }
     private activateCompletion(document:vscode.TextDocument,edit:ReplacementEdit
     ):vscode.InlineCompletionList{

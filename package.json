@@ -40,8 +40,25 @@
         "textify.maxTokens":{
           "type":"number",
           "default":500,
+          "minimum": 50,
+          "maximum": 5000,
           "description": "Maximum tokens to generate"
+        },
+        "textify.CompletionCacheMaxEntries":{
+          "type":"number",
+          "default":100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum Entries in completion cache"
+        },
+        "textify.completionCacheTtlMs":{
+          "type":"number",
+          "default":30000,
+          "minimum": 5000,
+          "maximum": 120000,
+          "description": "Completion Cache TTl in milliseconds"
         }
+        
       }
     },
     "commands": [

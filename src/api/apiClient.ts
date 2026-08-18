@@ -32,8 +32,7 @@ export class ApiClient implements vscode.Disposable{
     constructor(outputChannel:vscode.OutputChannel){
         this.outputChannel=outputChannel
     }
-    //future task:create  a dropdown menu so that the user can select which model to choose
-    //future task:apply rate limiting
+    
     getActiveProvider(): ApiProvider|null{
         const config=getConfig();
         if (config.openrouterApiKey) return 'openrouter';
