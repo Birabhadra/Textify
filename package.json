@@ -51,6 +51,13 @@
           "maximum": 1000,
           "description": "Maximum Entries in completion cache"
         },
+        "textify.lspCacheMaxEntries":{
+          "type":"number",
+          "default":100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum entries is Lsp service"
+        },
         "textify.completionCacheTtlMs":{
           "type":"number",
           "default":30000,

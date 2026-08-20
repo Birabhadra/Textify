@@ -3,11 +3,13 @@ import {ChatMessage, PendingCompletion, ReplacementEdit} from "../utils/types"
 import { ApiClient } from '../api/apiClient';
 import { IntentTracker } from '../services/intentTracker';
 import { CompletionCache } from '../cache/completionCache';
+import { ContextGatherer } from '../services/contextGatherer';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly apiclient: ApiClient;
     private readonly intentTracker:IntentTracker;
+    private readonly contextGatherer:ContextGatherer;
     private readonly completionCache:CompletionCache;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
@@ -20,6 +22,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.apiclient = new ApiClient(outputChannel);
         this.intentTracker=new IntentTracker();
         this.completionCache=new CompletionCache();
+        this.contextGatherer=new ContextGatherer(this.intentTracker);
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
@@ -43,9 +46,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             if (tryContinuePredictionResult !== undefined){
                 return tryContinuePredictionResult
             }
-            const prefix = document.getText(
-                new vscode.Range(new vscode.Position(0, 0), position)
-            )
+            const prefix =await this.contextGatherer.gatherContext(document,position)
+
+            this.log(`prefix:${prefix}`)
             if (token.isCancellationRequested){
                 this.log('Request cancelled');
                 return null

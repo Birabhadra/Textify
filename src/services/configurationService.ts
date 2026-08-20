@@ -10,6 +10,7 @@ export interface TabCompletionConfig{
     //cache settings
     completionCacheMaxEntries:number;
     completionCacheTtlMs:number;
+    lspCacheMaxEntries:number;
 }
 
 
@@ -20,6 +21,7 @@ const DEFAULTS:TabCompletionConfig={
     model:'qwen/qwen3-32b',
     maxTokens:500,
     completionCacheMaxEntries:100,
+    lspCacheMaxEntries:100,
     completionCacheTtlMs:30000
 }
 
@@ -64,6 +66,7 @@ export class ConfigurationService implements vscode.Disposable{
             model:config.get<string>('model',DEFAULTS.model),
             maxTokens:config.get<number>('maxTokens',DEFAULTS.maxTokens),
             completionCacheMaxEntries:config.get<number>('completionCacheMaxEntries',DEFAULTS.completionCacheMaxEntries),
+            lspCacheMaxEntries:config.get<number>('lspCacheMaxEntries',DEFAULTS.lspCacheMaxEntries),
             completionCacheTtlMs:config.get<number>('completionCacheTtlMs',DEFAULTS.completionCacheTtlMs)
         }
     }
@@ -85,6 +88,7 @@ export class ConfigurationService implements vscode.Disposable{
     get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey}
     get completionCacheMaxEntries():number {return this.cachedConfig.completionCacheMaxEntries}
     get completionCacheTtlMs():number {return this.cachedConfig.completionCacheTtlMs}
+    get lspCacheMaxEntries():number {return this.cachedConfig.lspCacheMaxEntries}
 
     onConfigChange(callback:(config:TabCompletionConfig)=>void):vscode.Disposable{
         this.changeListeners.add(callback);
