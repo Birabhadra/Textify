@@ -4,6 +4,7 @@ import { ApiClient } from '../api/apiClient';
 import { IntentTracker } from '../services/intentTracker';
 import { CompletionCache } from '../cache/completionCache';
 import { ContextGatherer } from '../services/contextGatherer';
+import { ASTService } from '../services/astService';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -17,12 +18,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private lastCompletionUri:string|null=null;
 
 
-    constructor(outputChannel: vscode.OutputChannel) {
+    constructor(astService:ASTService,outputChannel: vscode.OutputChannel) {
         this.outputChannel = outputChannel;
         this.apiclient = new ApiClient(outputChannel);
         this.intentTracker=new IntentTracker();
         this.completionCache=new CompletionCache();
-        this.contextGatherer=new ContextGatherer(this.intentTracker);
+        this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {

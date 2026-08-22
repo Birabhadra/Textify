@@ -10,62 +10,61 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished" 
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration":{
+    "configuration": {
       "title": "Textify",
       "properties": {
-        "textify.fireworksApiKey":{
-          "type":"string",
-          "default":"",
+        "textify.fireworksApiKey": {
+          "type": "string",
+          "default": "",
           "description": "Fireworks Api Key "
         },
-        "textify.openrouterApiKey":{
-          "type":"string",
-          "default":"",
+        "textify.openrouterApiKey": {
+          "type": "string",
+          "default": "",
           "description": "Openrouter Api Key "
         },
-        "textify.groqApiKey":{
-          "type":"string",
-          "default":"",
+        "textify.groqApiKey": {
+          "type": "string",
+          "default": "",
           "description": "Groq Api Key"
         },
-        "textify.model":{
-          "type":"string",
-          "default":"qwen/qwen3-32b",
+        "textify.model": {
+          "type": "string",
+          "default": "qwen/qwen3-32b",
           "description": "AI models to use for completions"
         },
-        "textify.maxTokens":{
-          "type":"number",
-          "default":500,
+        "textify.maxTokens": {
+          "type": "number",
+          "default": 500,
           "minimum": 50,
           "maximum": 5000,
           "description": "Maximum tokens to generate"
         },
-        "textify.CompletionCacheMaxEntries":{
-          "type":"number",
-          "default":100,
+        "textify.CompletionCacheMaxEntries": {
+          "type": "number",
+          "default": 100,
           "minimum": 10,
           "maximum": 1000,
           "description": "Maximum Entries in completion cache"
         },
-        "textify.lspCacheMaxEntries":{
-          "type":"number",
-          "default":100,
+        "textify.lspCacheMaxEntries": {
+          "type": "number",
+          "default": 100,
           "minimum": 10,
           "maximum": 1000,
           "description": "Maximum entries is Lsp service"
         },
-        "textify.completionCacheTtlMs":{
-          "type":"number",
-          "default":30000,
+        "textify.completionCacheTtlMs": {
+          "type": "number",
+          "default": 30000,
           "minimum": 5000,
           "maximum": 120000,
           "description": "Completion Cache TTl in milliseconds"
         }
-        
       }
     },
     "commands": [
@@ -84,17 +83,41 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.125.0",
+    "@types/emscripten": "^1.41.5",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "typescript": "^6.0.3",
+    "@types/vscode": "^1.125.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "@vscode/test-electron": "^3.0.0",
+    "eslint": "^10.5.0",
+    "tree-sitter-c": "^0.24.1",
+    "tree-sitter-cpp": "^0.23.4",
+    "tree-sitter-go": "^0.25.0",
+    "tree-sitter-java": "^0.23.5",
+    "tree-sitter-javascript": "^0.25.0",
+    "tree-sitter-python": "^0.25.0",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   },
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "allowScripts": {
+    "tree-sitter-c@0.24.1": true,
+    "tree-sitter-c@0.23.6": true,
+    "tree-sitter-cpp@0.23.4": true,
+    "tree-sitter-go@0.25.0": true,
+    "tree-sitter-java@0.23.5": true,
+    "tree-sitter-javascript@0.25.0": true,
+    "tree-sitter-javascript@0.23.1": true,
+    "tree-sitter-python@0.25.0": true,
+    "tree-sitter-rust@0.24.0": true,
+    "tree-sitter-typescript@0.23.2": true
+  },
+  "dependencies": {
+    "web-tree-sitter": "^0.26.12"
   }
 }

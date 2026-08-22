@@ -43,7 +43,7 @@ export class PrefixStage {
 
         const functionSetupEnd = Math.min(functionStartLine + 30, cursorLine);
         const recentContextStart = Math.max(functionSetupEnd + 1, cursorLine - 100)
-        const functionSetupLines = this.collectLinesToCursor(document, functionSetupEnd, new vscode.Position(functionSetupEnd + 1, 0))
+        const functionSetupLines = this.collectLinesToCursor(document, functionStartLine, new vscode.Position(functionSetupEnd + 1, 0))
         const recentContextLines = this.collectLinesToCursor(document, recentContextStart, new vscode.Position(position.line + 1, 0))
 
         const usedIdentifiers = extractIdentifiers([...classHeaderLines, ...functionSetupLines, recentContextLines].join('\n'), document.languageId)
