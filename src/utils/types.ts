@@ -58,3 +58,30 @@ export interface ReplacementRegion {
     text: string;
     range: vscode.Range;
 }
+
+
+export interface IndexedSymbol{
+    name:string;
+    kind:number;
+    containerName?:string;
+    uri:string;
+    range:{
+        startLine:number;
+        startCharacter:number;
+        endLine:number;
+        endCharacter:number;
+    };
+
+    signature?:string
+
+}
+export interface CompletionContext{
+    prefix:string;
+    replacementRegion:ReplacementRegion;
+    suffixAfterRegion:string;
+    cursorPosition:vscode.Position;
+    languageId:string;
+    filePath:string;
+    editHistory:string;
+    crossFileSymbols:IndexedSymbol[]
+}

@@ -5,6 +5,7 @@ import { IntentTracker } from '../services/intentTracker';
 import { CompletionCache } from '../cache/completionCache';
 import { ContextGatherer } from '../services/contextGatherer';
 import { ASTService } from '../services/astService';
+import { PromptBuilder } from '../services/promptBuilder';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -12,6 +13,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private readonly intentTracker:IntentTracker;
     private readonly contextGatherer:ContextGatherer;
     private readonly completionCache:CompletionCache;
+    private readonly promptBuilder:PromptBuilder;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
@@ -23,6 +25,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.apiclient = new ApiClient(outputChannel);
         this.intentTracker=new IntentTracker();
         this.completionCache=new CompletionCache();
+        this.promptBuilder=new PromptBuilder();
         this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
@@ -47,25 +50,23 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             if (tryContinuePredictionResult !== undefined){
                 return tryContinuePredictionResult
             }
-            const prefix =await this.contextGatherer.gatherContext(document,position)
-
-            this.log(`prefix:${prefix}`)
+            const completionContext =await this.contextGatherer.gatherContext(document,position)
+            const messages=this.promptBuilder.buildPrompt(completionContext)
+            this.log(`completion context:${JSON.stringify(messages)}`)
             if (token.isCancellationRequested){
                 this.log('Request cancelled');
                 return null
             }
             let completion=''
             try {
-                const messages:ChatMessage[]=[
-                    { role: 'system', content: 'complete the code.Output Only the completion,no explanation and no mention of language , Return only the raw source code. Do not wrap the code in Markdown code fences such as ```javascript or ```.' },
-                    { role: 'user', content: prefix },
-                ]
                 completion=await this.callCompletionApi(messages,token)
                 
             }catch(error){
                 this.log(`Api Error: ${error}`);
                 return null
             }
+
+            completion=this.cleanCompletionText(completion);
             const edit:ReplacementEdit={
                 insertText:completion,
                 startPosition:position
@@ -81,6 +82,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             return null;
         }
     }
+
+    private cleanCompletionText(text: string): string {
+        let cleaned = text.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+        const explanationPattern = /\n\n(?:\/\/|\/\*|#|Note:|Explanation:)[\s\S]*$/;
+        cleaned = cleaned.replace(explanationPattern, '');
+        return cleaned.trimEnd();
+    }
+
 
     private tryCachedCompletion(document:vscode.TextDocument,position:vscode.Position,editHistory:string):vscode.InlineCompletionList|undefined{
         const cachedEdit=this.completionCache.get(document,position,editHistory)
