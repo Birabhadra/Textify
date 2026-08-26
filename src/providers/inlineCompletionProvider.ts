@@ -6,6 +6,7 @@ import { CompletionCache } from '../cache/completionCache';
 import { ContextGatherer } from '../services/contextGatherer';
 import { ASTService } from '../services/astService';
 import { PromptBuilder } from '../services/promptBuilder';
+import { DeduplicationService } from '../services/deduplicationService';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -14,6 +15,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private readonly contextGatherer:ContextGatherer;
     private readonly completionCache:CompletionCache;
     private readonly promptBuilder:PromptBuilder;
+    private readonly deDuplicationService:DeduplicationService;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
@@ -27,6 +29,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.completionCache=new CompletionCache();
         this.promptBuilder=new PromptBuilder();
         this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
+        this.deDuplicationService=new DeduplicationService();
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
@@ -67,6 +70,13 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
 
             completion=this.cleanCompletionText(completion);
+            const deDupResult=this.deDuplicationService.check(document,position,completion)
+
+            if(!deDupResult.proceed){
+                this.log(`deduplication rejected:${deDupResult.reasonText?? 'no reason provided'}`)
+                return null;
+            }
+            completion=deDupResult.completion;
             const edit:ReplacementEdit={
                 insertText:completion,
                 startPosition:position
