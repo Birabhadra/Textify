@@ -77,10 +77,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 return null;
             }
             completion=deDupResult.completion;
-            const edit:ReplacementEdit={
-                insertText:completion,
-                startPosition:position
+            const edit=this.computeMinimalReplacement(document,completionContext.replacementRegion.range.start,completionContext.replacementRegion.range.end,completion);
 
+            if(!edit || edit.insertText.length===0){
+                this.log('no changes detected in completion')
+                return null;
             }
             this.completionCache.set(document,position,editHistoryHash,edit)
 
@@ -91,6 +92,38 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             this.log(`unexpected error: ${error.message}`)
             return null;
         }
+    }
+    private computeMinimalReplacement(document:vscode.TextDocument,regionStart:vscode.Position,regionEnd:vscode.Position,newText:string):ReplacementEdit|null{
+        const oldText=document.getText(new vscode.Range(regionStart,regionEnd))
+        if(oldText === newText){
+            return null;
+        }
+
+        const minLength=Math.min(oldText.length,newText.length);
+        let prefixLength=0
+        while(prefixLength<minLength && oldText[prefixLength]===newText[prefixLength]){
+            prefixLength++
+        }
+        let suffixLength=0
+        const maxSuffixLength=minLength-prefixLength;
+        while(suffixLength<maxSuffixLength && oldText[oldText.length-1-suffixLength]===newText[newText.length-1-suffixLength]){
+            suffixLength++;
+        }
+        const oldDiffEnd=oldText.length-suffixLength;
+        const newDiffEnd=newText.length-suffixLength;
+        const deletedText=oldText.slice(prefixLength,oldDiffEnd);
+
+        const regionStartOffset=document.offsetAt(regionStart);
+        const actualDeleteStart=document.positionAt(regionStartOffset+prefixLength);
+        const actualDeleteEnd=document.positionAt(regionStartOffset+oldDiffEnd)
+
+        return{
+            deleteRange:new vscode.Range(regionStart,actualDeleteEnd),
+            insertText:newText.slice(0,newDiffEnd),
+            deletedText,
+            _actualDeleteRange:deletedText?new vscode.Range(actualDeleteStart,actualDeleteEnd):undefined,
+        }
+
     }
 
     private cleanCompletionText(text: string): string {
@@ -115,7 +148,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private activateCompletion(document:vscode.TextDocument,edit:ReplacementEdit
     ):vscode.InlineCompletionList{
         this.lastCompletionText=edit.insertText;
-        this.lastCompletionPosition=edit.startPosition;
+        this.lastCompletionPosition=edit.deleteRange.start;
         this.lastCompletionUri=document.uri.toString();
         this.pendingCompletion={
             documentUri:document.uri.toString(),
@@ -165,7 +198,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         if (!this.pendingCompletion){
             return undefined
         }
-        const pendingPosition=this.pendingCompletion.edit.startPosition;
+        const pendingPosition=this.pendingCompletion.edit.deleteRange.start;
         const pendingUri=this.pendingCompletion.documentUri
 
         if (document.uri.toString() !== pendingUri){
@@ -211,5 +244,6 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private log(message: string): void {
         this.outputChannel.appendLine(`[provider] ${message}`)
     }
+
 
 }
