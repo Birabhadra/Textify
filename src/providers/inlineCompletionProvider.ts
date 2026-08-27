@@ -7,6 +7,7 @@ import { ContextGatherer } from '../services/contextGatherer';
 import { ASTService } from '../services/astService';
 import { PromptBuilder } from '../services/promptBuilder';
 import { DeduplicationService } from '../services/deduplicationService';
+import { DeletionDecoration } from '../ui/deletionDecoration';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -16,6 +17,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private readonly completionCache:CompletionCache;
     private readonly promptBuilder:PromptBuilder;
     private readonly deDuplicationService:DeduplicationService;
+    private readonly deletionDecoration:DeletionDecoration;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
@@ -30,6 +32,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.promptBuilder=new PromptBuilder();
         this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
         this.deDuplicationService=new DeduplicationService();
+        this.deletionDecoration=new DeletionDecoration();
+    }
+    getPenditEdit():ReplacementEdit|null{
+        return this.pendingCompletion?.edit?? null;
+    }
+
+    getIntentTracker():IntentTracker{
+        return this.intentTracker;
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
@@ -77,10 +87,11 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 return null;
             }
             completion=deDupResult.completion;
-            const edit:ReplacementEdit={
-                insertText:completion,
-                startPosition:position
+            const edit=this.computeMinimalReplacement(document,completionContext.replacementRegion.range.start,completionContext.replacementRegion.range.end,completion);
 
+            if(!edit || edit.insertText.length===0){
+                this.log('no changes detected in completion')
+                return null;
             }
             this.completionCache.set(document,position,editHistoryHash,edit)
 
@@ -91,6 +102,38 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             this.log(`unexpected error: ${error.message}`)
             return null;
         }
+    }
+    private computeMinimalReplacement(document:vscode.TextDocument,regionStart:vscode.Position,regionEnd:vscode.Position,newText:string):ReplacementEdit|null{
+        const oldText=document.getText(new vscode.Range(regionStart,regionEnd))
+        if(oldText === newText){
+            return null;
+        }
+
+        const minLength=Math.min(oldText.length,newText.length);
+        let prefixLength=0
+        while(prefixLength<minLength && oldText[prefixLength]===newText[prefixLength]){
+            prefixLength++
+        }
+        let suffixLength=0
+        const maxSuffixLength=minLength-prefixLength;
+        while(suffixLength<maxSuffixLength && oldText[oldText.length-1-suffixLength]===newText[newText.length-1-suffixLength]){
+            suffixLength++;
+        }
+        const oldDiffEnd=oldText.length-suffixLength;
+        const newDiffEnd=newText.length-suffixLength;
+        const deletedText=oldText.slice(prefixLength,oldDiffEnd);
+
+        const regionStartOffset=document.offsetAt(regionStart);
+        const actualDeleteStart=document.positionAt(regionStartOffset+prefixLength);
+        const actualDeleteEnd=document.positionAt(regionStartOffset+oldDiffEnd)
+
+        return{
+            deleteRange:new vscode.Range(regionStart,actualDeleteEnd),
+            insertText:newText.slice(0,newDiffEnd),
+            deletedText,
+            _actualDeleteRange:deletedText?new vscode.Range(actualDeleteStart,actualDeleteEnd):undefined,
+        }
+
     }
 
     private cleanCompletionText(text: string): string {
@@ -115,13 +158,20 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private activateCompletion(document:vscode.TextDocument,edit:ReplacementEdit
     ):vscode.InlineCompletionList{
         this.lastCompletionText=edit.insertText;
-        this.lastCompletionPosition=edit.startPosition;
+        this.lastCompletionPosition=edit.deleteRange.start;
         this.lastCompletionUri=document.uri.toString();
         this.pendingCompletion={
             documentUri:document.uri.toString(),
             edit
         }
-        return this.createInlineCompletionList(edit.insertText)
+        if(edit.deletedText.length>0){
+            const editor=vscode.window.activeTextEditor;
+            if(editor && editor.document.uri.toString()===document.uri.toString()){
+                const decorationRange=edit._actualDeleteRange??edit.deleteRange;
+                this.deletionDecoration.showDeletion(editor,decorationRange);
+            }
+        }
+        return this.createInlineCompletionList(edit.insertText,edit.deleteRange)
     }
 
     private tryContinuePrediction(document:vscode.TextDocument,position:vscode.Position):vscode.InlineCompletionList|null|undefined{
@@ -165,7 +215,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         if (!this.pendingCompletion){
             return undefined
         }
-        const pendingPosition=this.pendingCompletion.edit.startPosition;
+        const pendingPosition=this.pendingCompletion.edit.deleteRange.start;
         const pendingUri=this.pendingCompletion.documentUri
 
         if (document.uri.toString() !== pendingUri){
@@ -188,8 +238,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         
     }
 
-    private clearPendingCompletion():void{
+    clearPendingCompletion():void{
         this.pendingCompletion=null;
+        this.deletionDecoration.clearDecorations();
     }
     private async callCompletionApi(
         messages: ChatMessage [],token:vscode.CancellationToken
@@ -211,5 +262,16 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private log(message: string): void {
         this.outputChannel.appendLine(`[provider] ${message}`)
     }
+
+    dispose():void{
+        this.deletionDecoration.dispose();
+        this.completionCache.dispose();
+        this.apiclient.dispose();
+        this.intentTracker.dispose();
+        this.contextGatherer.dispose();
+
+
+    }
+
 
 }

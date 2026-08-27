@@ -19,14 +19,16 @@ export interface ChatMessage {
     content: string;
 }
 export interface ReplacementEdit {
-    insertText: string,
-    startPosition: vscode.Position
+    deleteRange: vscode.Range;
+    insertText: string;
+    deletedText: string;
+    _actualDeleteRange: vscode.Range | undefined;
 }
 export interface PendingCompletion {
     documentUri: string,
     edit: ReplacementEdit,
 }
-export type IntentType = 'added' | 'pasted' | 'edited' | 'accepted'
+export type IntentType = 'added' | 'pasted' | 'edited' | 'accepted' | 'rejected';
 export interface PendingIntent {
     type: IntentType;
     filePath: string;
@@ -44,7 +46,7 @@ export interface IntentEntry {
     lineRange: { start: number, end: number };
     content: string;
     timestamp: number;
-    suggestionPreview?: string;
+
 }
 
 export interface EnclosingScope {
@@ -60,28 +62,28 @@ export interface ReplacementRegion {
 }
 
 
-export interface IndexedSymbol{
-    name:string;
-    kind:number;
-    containerName?:string;
-    uri:string;
-    range:{
-        startLine:number;
-        startCharacter:number;
-        endLine:number;
-        endCharacter:number;
+export interface IndexedSymbol {
+    name: string;
+    kind: number;
+    containerName?: string;
+    uri: string;
+    range: {
+        startLine: number;
+        startCharacter: number;
+        endLine: number;
+        endCharacter: number;
     };
 
-    signature?:string
+    signature?: string
 
 }
-export interface CompletionContext{
-    prefix:string;
-    replacementRegion:ReplacementRegion;
-    suffixAfterRegion:string;
-    cursorPosition:vscode.Position;
-    languageId:string;
-    filePath:string;
-    editHistory:string;
-    crossFileSymbols:IndexedSymbol[]
+export interface CompletionContext {
+    prefix: string;
+    replacementRegion: ReplacementRegion;
+    suffixAfterRegion: string;
+    cursorPosition: vscode.Position;
+    languageId: string;
+    filePath: string;
+    editHistory: string;
+    crossFileSymbols: IndexedSymbol[]
 }
