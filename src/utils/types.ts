@@ -21,14 +21,14 @@ export interface ChatMessage {
 export interface ReplacementEdit {
     deleteRange: vscode.Range;
     insertText: string;
-    deletedText:string;
+    deletedText: string;
     _actualDeleteRange: vscode.Range | undefined;
 }
 export interface PendingCompletion {
     documentUri: string,
     edit: ReplacementEdit,
 }
-export type IntentType = 'added' | 'pasted' | 'edited' | 'accepted'
+export type IntentType = 'added' | 'pasted' | 'edited' | 'accepted' | 'rejected';
 export interface PendingIntent {
     type: IntentType;
     filePath: string;
@@ -46,7 +46,7 @@ export interface IntentEntry {
     lineRange: { start: number, end: number };
     content: string;
     timestamp: number;
-    suggestionPreview?: string;
+
 }
 
 export interface EnclosingScope {

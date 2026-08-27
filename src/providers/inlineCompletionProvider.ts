@@ -34,6 +34,13 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.deDuplicationService=new DeduplicationService();
         this.deletionDecoration=new DeletionDecoration();
     }
+    getPenditEdit():ReplacementEdit|null{
+        return this.pendingCompletion?.edit?? null;
+    }
+
+    getIntentTracker():IntentTracker{
+        return this.intentTracker;
+    }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
             this.log(`provideInlinecompletionitems called at ${position.line}:${position.character}`)
@@ -231,8 +238,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         
     }
 
-    private clearPendingCompletion():void{
+    clearPendingCompletion():void{
         this.pendingCompletion=null;
+        this.deletionDecoration.clearDecorations();
     }
     private async callCompletionApi(
         messages: ChatMessage [],token:vscode.CancellationToken

@@ -312,6 +312,38 @@ export class IntentTracker implements vscode.Disposable {
 
 
     }
+
+    recordAcceptedSuggestion(filePath:string,line:number,content:string):void{
+        this.finalizeIntent();
+        const entry:IntentEntry={
+            id:`intent_${++this.idCOunter}`,
+            type:`accepted`,
+            filePath,
+            lineRange:{start:line,end:line},
+            content,
+            timestamp:Date.now()
+        }
+        this.buffer.push(entry);
+        while(this.buffer.length>35){
+            this.buffer.shift()
+        }
+    }
+    recordRejectedSuggestion(filePath:string,line:number,content:string):void{
+        const entry:IntentEntry={
+            id:`intent_${++this.idCOunter}`,
+            type:`rejected`,
+            filePath,
+            lineRange:{start:line,end:line},
+            content,
+            timestamp:Date.now()
+        }
+        this.buffer.push(entry);
+        while(this.buffer.length>35){
+            this.buffer.shift()
+        }
+    }
+
+
     dispose() {
         this.finalizeIntent();
         this.disposables.forEach(d=>d.dispose());
