@@ -51,3 +51,8 @@
     //future task:implement langchain langgraph and functionality to use any api
     //future task: if using openrouter then is there an option to show which modles are available how many tokens are left and auto switch so that it can auto switch between models if one model is exhausted
     // future task:small settings tab in the bottom and a switch to turn on and off immideately
+
+    //jumptab (adding missing imports at top)
+    //fix indentations
+    //research about cursor and do the same
+    //speculative decoding api
