@@ -15,12 +15,12 @@ const PROVIDER_CONFIGS: Record<ApiProvider,ProviderConfig>={
         getModel:()=> getConfig().model
     },
     groq:{
-        endPoint:"https://openrouter.ai/api/v1/chat/completions",
+        endPoint:"https://api.groq.com/openai/v1/chat/completions",
         getApiKey:()=> getConfig().groqApiKey,
         getModel:()=> getConfig().model
     },
     fireworks:{
-        endPoint:"https://openrouter.ai/api/v1/chat/completions",
+        endPoint:"https://api.fireworks.ai/inference/v1/chat/completions",
         getApiKey:()=> getConfig().fireworksApiKey,
         getModel:()=> getConfig().model
     }
@@ -67,6 +67,11 @@ export class ApiClient implements vscode.Disposable{
             temperature:0.1
 
         }
+
+        if (provider === 'groq') {
+            body['reasoning_effort'] = 'none';
+        }
+        
         this.log(`[${provider}] Request:model=${model},max_token=${maxTokens}`)
         return this.streamRequest(
             ProviderConfig.endPoint,
