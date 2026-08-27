@@ -7,6 +7,7 @@ import { ContextGatherer } from '../services/contextGatherer';
 import { ASTService } from '../services/astService';
 import { PromptBuilder } from '../services/promptBuilder';
 import { DeduplicationService } from '../services/deduplicationService';
+import { DeletionDecoration } from '../ui/deletionDecoration';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -16,6 +17,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private readonly completionCache:CompletionCache;
     private readonly promptBuilder:PromptBuilder;
     private readonly deDuplicationService:DeduplicationService;
+    private readonly deletionDecoration:DeletionDecoration;
     private pendingCompletion: PendingCompletion|null=null;
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
@@ -30,6 +32,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.promptBuilder=new PromptBuilder();
         this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
         this.deDuplicationService=new DeduplicationService();
+        this.deletionDecoration=new DeletionDecoration();
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
@@ -154,7 +157,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             documentUri:document.uri.toString(),
             edit
         }
-        return this.createInlineCompletionList(edit.insertText)
+        if(edit.deletedText.length>0){
+            const editor=vscode.window.activeTextEditor;
+            if(editor && editor.document.uri.toString()===document.uri.toString()){
+                const decorationRange=edit._actualDeleteRange??edit.deleteRange;
+                this.deletionDecoration.showDeletion(editor,decorationRange);
+            }
+        }
+        return this.createInlineCompletionList(edit.insertText,edit.deleteRange)
     }
 
     private tryContinuePrediction(document:vscode.TextDocument,position:vscode.Position):vscode.InlineCompletionList|null|undefined{
@@ -243,6 +253,16 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
     private log(message: string): void {
         this.outputChannel.appendLine(`[provider] ${message}`)
+    }
+
+    dispose():void{
+        this.deletionDecoration.dispose();
+        this.completionCache.dispose();
+        this.apiclient.dispose();
+        this.intentTracker.dispose();
+        this.contextGatherer.dispose();
+
+
     }
 
 
