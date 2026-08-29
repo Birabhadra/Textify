@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
-import * as crypto from "crypto"
+import * as vscode from "vscode";
+import * as crypto from "crypto";
 import { BoundedCache, buildCacheKey } from "./boundedCache";
 import { ReplacementEdit } from "../utils/types";
 import { getConfig } from "../services/configurationService";
@@ -25,7 +25,7 @@ export class CompletionCache implements vscode.Disposable {
                 }
                 this.TtlMs = config.completionCacheTtlMs;
             })
-        )
+        );
 
         this.diposables.push(
             vscode.workspace.onDidCloseTextDocument(document=>{
@@ -36,7 +36,7 @@ export class CompletionCache implements vscode.Disposable {
 
 
             })
-        )
+        );
     }
     computeContentHash(content:string):string{
         return crypto.createHash('md5').update(content).digest("hex").slice(0,16);
@@ -64,9 +64,9 @@ export class CompletionCache implements vscode.Disposable {
             position.line,
             position.character,
             editHistoryHash
-        )
+        );
 
-        return this.cache.get(key)
+        return this.cache.get(key);
 
 
     }
@@ -79,13 +79,13 @@ export class CompletionCache implements vscode.Disposable {
             position.line,
             position.character,
             editHistoryHash
-        )
-        this.cache.set(key,completion,{ttlMs:this.TtlMs,groupKey:documentUri})
+        );
+        this.cache.set(key,completion,{ttlMs:this.TtlMs,groupKey:documentUri});
     }
     dispose() {
         this.diposables.forEach(d=>d.dispose());
-        this.cache.clear()
-        this.contentHashByDocument.clear()
+        this.cache.clear();
+        this.contentHashByDocument.clear();
     }
 
 }

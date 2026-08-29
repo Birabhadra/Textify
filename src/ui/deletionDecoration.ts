@@ -1,4 +1,4 @@
-import * as vscode from 'vscode'
+import * as vscode from 'vscode';
 export class DeletionDecoration implements vscode.Disposable {
     private readonly decorationType: vscode.TextEditorDecorationType;
     private readonly disposables: vscode.Disposable[] = [];
@@ -10,13 +10,13 @@ export class DeletionDecoration implements vscode.Disposable {
                 textDecoration: 'line-through',
                 color: 'rgba(150,150,150,0.9)'
             }
-        )
+        );
 
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor(() => {
                 this.clearDecorations();
             })
-        )
+        );
 
         this.disposables.push(
             vscode.window.onDidChangeTextEditorSelection((e)=>{
@@ -27,7 +27,7 @@ export class DeletionDecoration implements vscode.Disposable {
                     }
                 }
             })
-        )
+        );
 
     }
     showDeletion(editor:vscode.TextEditor,range:vscode.Range):void{
@@ -41,7 +41,7 @@ export class DeletionDecoration implements vscode.Disposable {
 
     clearDecorations() {
         if (this.activeEditor) {
-            this.activeEditor.setDecorations(this.decorationType, [])
+            this.activeEditor.setDecorations(this.decorationType, []);
         }
         this.activeEditor=null;
     }
@@ -49,7 +49,7 @@ export class DeletionDecoration implements vscode.Disposable {
     dispose() {
         this.clearDecorations();
         this.decorationType.dispose();
-        this.disposables.forEach(d=>d.dispose())
+        this.disposables.forEach(d=>d.dispose());
     }
 
 }

@@ -1,26 +1,26 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
 import { LspService } from "../lspService";
 import { BoundedCache, buildCacheKey } from "../../cache/boundedCache";
 import { IndexedSymbol } from "../../utils/types";
 export class SymbolIndex{
-    private readonly cache:BoundedCache<{version:number;symbols:IndexedSymbol[]}>
+    private readonly cache:BoundedCache<{version:number;symbols:IndexedSymbol[]}>;
     private readonly trackedUris:Set<string>=new Set();
     constructor(private readonly lspService:LspService){
-        this.cache=new BoundedCache(1000)
+        this.cache=new BoundedCache(1000);
     }
 
     getAllSymbols():IndexedSymbol[]{
-        const result:IndexedSymbol[]=[]
+        const result:IndexedSymbol[]=[];
         for(const uri of Array.from(this.trackedUris)){
-            const cachedKey=buildCacheKey('SymbolIndex',uri)
+            const cachedKey=buildCacheKey('SymbolIndex',uri);
             const entry=this.cache.get(cachedKey);
             if(!entry){
-                this.trackedUris.delete(cachedKey)
+                this.trackedUris.delete(cachedKey);
                 continue;
             }
 
             if(entry.symbols.length>0){
-                result.push(...entry.symbols)
+                result.push(...entry.symbols);
             }
         }
         return result;
@@ -31,21 +31,21 @@ export class SymbolIndex{
             return;
         }
         const uri=document.uri.toString();
-        const cachedKey=buildCacheKey('SymbolIndex',uri)
-        const cached=this.cache.get(cachedKey)
+        const cachedKey=buildCacheKey('SymbolIndex',uri);
+        const cached=this.cache.get(cachedKey);
         if(cached && cached.version === document.version){
             return;
         }
 
-        const symbols=await this.lspService.getDocumentSymbols(document)
+        const symbols=await this.lspService.getDocumentSymbols(document);
         const indexedSymbols=this.extractSymbols(symbols,uri);
-        this.cache.set(cachedKey,{version:document.version,symbols:indexedSymbols})
+        this.cache.set(cachedKey,{version:document.version,symbols:indexedSymbols});
         this.trackedUris.add(uri);
 
     }
 
     private extractSymbols(symbols:vscode.DocumentSymbol[],uri:string,containerName?:string):IndexedSymbol[]{
-        const result:IndexedSymbol[]=[]
+        const result:IndexedSymbol[]=[];
 
         for(const symbol of symbols){
             if(this.isReleventSymbolKind(symbol.kind)){
@@ -61,12 +61,12 @@ export class SymbolIndex{
                         endCharacter:symbol.range.end.character
                     }
 
-                })
+                });
             }
             if(symbol.children && symbol.children.length>0){
                 const childContainer=containerName?`${containerName}.${symbol.name}`:symbol.name;
 
-                result.push(...this.extractSymbols(symbol.children,uri,childContainer))
+                result.push(...this.extractSymbols(symbol.children,uri,childContainer));
             }
         }
         return result;

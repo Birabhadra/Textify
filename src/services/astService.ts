@@ -12,7 +12,7 @@ const LANGUAGE_MAP: Record<string,string>={
     java:'tree-sitter-java.wasm',
     c:'tree-sitter-c.wasm',
     cpp:'tree-sitter-cpp.wasm',
-}
+};
 export class ASTService{
     private readonly grammarDir:string;
     private readonly languageCache=new Map<string,TreeSitter.Language>();
@@ -26,7 +26,7 @@ export class ASTService{
 
 
     get isReady():boolean{
-        return this._isReady
+        return this._isReady;
     }
 
     async initialize():Promise<void>{
@@ -42,10 +42,10 @@ export class ASTService{
         }
     }
     async ensureLanguage(languageId:string):Promise<boolean>{
-        if(!this._isReady || !this.parser) return false;
+        if(!this._isReady || !this.parser) {return false;}
 
         const wasmfile=LANGUAGE_MAP[languageId];
-        if(!wasmfile) return false
+        if(!wasmfile) {return false;}
 
         if(this.languageCache.has(wasmfile)){
             if(this.currentLanguageId !== languageId){
@@ -68,14 +68,14 @@ export class ASTService{
 
     }
     parseSync(code:string):TreeSitter.Tree|null{
-        if(!this._isReady || !this.parser) return null;
+        if(!this._isReady || !this.parser) {return null;}
 
-        return this.parser.parse(code)
+        return this.parser.parse(code);
     }
 
     withParsedTree<T>(code:string,fn:(tree:TreeSitter.Tree)=>T):T|null{
         const tree=this.parseSync(code);
-        if(!tree) return null;
+        if(!tree) {return null;}
         try{
             return fn(tree);
         }finally{

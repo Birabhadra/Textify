@@ -3,7 +3,7 @@ export const JS_TS_LANGUAGES = [
     'typescriptreact',
     'javascript',
     'javascriptreact'
-]
+];
 
 export type JsTsLanguageId = typeof JS_TS_LANGUAGES[number];
 
@@ -111,7 +111,7 @@ export const CPP_KEYWORDS = new Set([
 
 export function isKeyword(word: string, languageId: string): boolean {
     if (isJavaScriptOrTypeScript(languageId)) {
-        return JS_KEYWORDS.has(word)
+        return JS_KEYWORDS.has(word);
     }
 
     if (languageId === 'python') {
@@ -182,7 +182,7 @@ export function getTruncationMarker(languageId: string, skippedLines: number): s
 }
 export function stringSimilarity(a: string, b: string): number {
     const maxLen = Math.max(a.length, b.length);
-    if (maxLen === 0) return 1.0;
+    if (maxLen === 0) {return 1.0;}
 
     const distance = levenshteinDistance(a, b);
     return 1 - distance / maxLen;
