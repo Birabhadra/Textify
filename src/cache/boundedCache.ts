@@ -6,11 +6,11 @@ export interface CacheEntry<V> {
     accessCount: number;
 }
 export function buildCacheKey(...parts:Array<string | number>):string{
-    let key=''
+    let key='';
     for(const part of parts){
-        const typePrefix=typeof part === 'number'? 'n':'s'
-        const value=String(part)
-        key+=`${typePrefix}${value.length}:${value}|`
+        const typePrefix=typeof part === 'number'? 'n':'s';
+        const value=String(part);
+        key+=`${typePrefix}${value.length}:${value}|`;
     }
     return key;
 }
@@ -27,15 +27,15 @@ export class BoundedCache<V> {
 
     invalidateGroup(groupKey:string):number{
         const keys=this.groupIndex.get(groupKey);
-        let count=0
+        let count=0;
 
         if(!keys){
-            return 0
+            return 0;
         }
 
         for(const key of keys){
             if(this.cache.delete(key)){
-                count++
+                count++;
             }
         }
         this.groupIndex.delete(groupKey);
@@ -43,14 +43,14 @@ export class BoundedCache<V> {
     }
     get(key: string): V | undefined {
         const entry=this.cache.get(key);
-        const now=Date.now()
+        const now=Date.now();
         if(!entry){
             return undefined;
         }
 
         if(entry.expiresAt !== null && now>entry.expiresAt){
             this.deleteEntry(key,entry);
-            return undefined
+            return undefined;
         }
         entry.lastAccessed=now;
         entry.accessCount++;
@@ -58,10 +58,10 @@ export class BoundedCache<V> {
 
     }
     set(key: string, value: V, options?: { ttlMs?: number | null; groupKey?: string | null; }): void {
-        const now=Date.now()
+        const now=Date.now();
         const TtlMs=options?.ttlMs??null;
-        const groupKey=options?.groupKey ?? null
-        const existing = this.cache.get(key)
+        const groupKey=options?.groupKey ?? null;
+        const existing = this.cache.get(key);
         if (existing) {
             this.deleteEntry(key, existing);
         }
@@ -77,14 +77,14 @@ export class BoundedCache<V> {
             accessCount:1,
             groupKey
 
-        }
+        };
         this.cache.set(key,entry);
 
         if (groupKey!==null){
-            let keys=this.groupIndex.get(groupKey)
+            let keys=this.groupIndex.get(groupKey);
             if(!keys){
                 keys=new Set();
-                this.groupIndex.set(groupKey,keys)
+                this.groupIndex.set(groupKey,keys);
             }
             keys.add(key);
         }
@@ -92,16 +92,16 @@ export class BoundedCache<V> {
     }
 
     private evictLeastUsed():void{
-        let lowestScore=Infinity
+        let lowestScore=Infinity;
         let  evictKey:string|null=null;
-        const now=Date.now()
+        const now=Date.now();
         for (const [key,entry] of this.cache){
-            if(entry.expiresAt !=null && now>entry.expiresAt){
+            if(entry.expiresAt !==null && now>entry.expiresAt){
                 this.deleteEntry(key,entry);
                 return;
             }
 
-            const ageSeconds=Math.max(1,(now-entry.lastAccessed)/1000)
+            const ageSeconds=Math.max(1,(now-entry.lastAccessed)/1000);
             const score=entry.lastAccessed/ageSeconds;
 
             if (score<lowestScore){
@@ -111,9 +111,9 @@ export class BoundedCache<V> {
         }
 
         if(evictKey!==null){
-            const entry=this.cache.get(evictKey)
+            const entry=this.cache.get(evictKey);
             if(entry){
-                this.deleteEntry(evictKey,entry)
+                this.deleteEntry(evictKey,entry);
             }
         }
 
@@ -124,12 +124,12 @@ export class BoundedCache<V> {
         this.cache.delete(key);
 
         if (entry.groupKey !== null) {
-            const keys = this.groupIndex.get(entry.groupKey)
+            const keys = this.groupIndex.get(entry.groupKey);
 
             if (keys) {
                 keys.delete(key);
                 if (keys.size === 0) {
-                    this.groupIndex.delete(entry.groupKey)
+                    this.groupIndex.delete(entry.groupKey);
                 }
             }
         }

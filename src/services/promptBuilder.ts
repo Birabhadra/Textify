@@ -114,13 +114,13 @@ export class PromptBuilder {
         parts.push(fitted.suffix);
         parts.push('</suffix>');
 
-        parts.push(`</file>`)
+        parts.push(`</file>`);
 
         return parts.join("\n");
     }
 
     estimateTokens(text: string): number {
-        if (!text) return 0;
+        if (!text) {return 0;}
         return Math.ceil(text.length / 4);
     }
 
@@ -160,7 +160,7 @@ export class PromptBuilder {
 
     private truncateToTokens(text: string, maxTokens: number): string {
         const maxChars = this.tokensToChars(maxTokens);
-        if (!text || text.length <= maxChars) return text;
+        if (!text || text.length <= maxChars) {return text;}
         return text.slice(0, maxChars);
     }
 

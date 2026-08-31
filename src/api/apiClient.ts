@@ -1,7 +1,7 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
 import { getConfig } from "../services/configurationService";
 export type ApiProvider='openrouter'|'groq'|'fireworks'
-import { ChatStreamChunk,ChatMessage} from "../utils/types"
+import { ChatStreamChunk,ChatMessage} from "../utils/types";
 interface ProviderConfig{
     endPoint:string;
     getApiKey:()=>string;
@@ -24,22 +24,22 @@ const PROVIDER_CONFIGS: Record<ApiProvider,ProviderConfig>={
         getApiKey:()=> getConfig().fireworksApiKey,
         getModel:()=> getConfig().model
     }
-}
+};
 
 export class ApiClient implements vscode.Disposable{
     private readonly outputChannel:vscode.OutputChannel;
     private pendingRequest: AbortController|null=null;
     constructor(outputChannel:vscode.OutputChannel){
-        this.outputChannel=outputChannel
+        this.outputChannel=outputChannel;
     }
     
     getActiveProvider(): ApiProvider|null{
         const config=getConfig();
-        if (config.openrouterApiKey) return 'openrouter';
-        if (config.groqApiKey) return 'groq';
-        if (config.fireworksApiKey) return 'fireworks';
+        if (config.openrouterApiKey) {return 'openrouter';}
+        if (config.groqApiKey) {return 'groq';}
+        if (config.fireworksApiKey) {return 'fireworks';}
 
-        return null
+        return null;
     }
 
     async complete(
@@ -47,7 +47,7 @@ export class ApiClient implements vscode.Disposable{
     ): Promise<AsyncGenerator<string,void,unknown>>{
         const provider=this.getActiveProvider();
         if (!provider){
-            throw new Error("No API key configured")
+            throw new Error("No API key configured");
         }
         this.cancel();
         this.pendingRequest=new AbortController();
@@ -66,19 +66,19 @@ export class ApiClient implements vscode.Disposable{
             stream:true,
             temperature:0.1
 
-        }
+        };
 
         if (provider === 'groq') {
             body['reasoning_effort'] = 'none';
         }
         
-        this.log(`[${provider}] Request:model=${model},max_token=${maxTokens}`)
+        this.log(`[${provider}] Request:model=${model},max_token=${maxTokens}`);
         return this.streamRequest(
             ProviderConfig.endPoint,
             body,
             ProviderConfig.getApiKey(),
             this.pendingRequest.signal
-        )
+        );
 
     }
 
@@ -104,10 +104,10 @@ export class ApiClient implements vscode.Disposable{
             body:JSON.stringify(body),
             signal,
 
-        })
+        });
         if(!response.ok){
             const errorText=await response.text();
-            throw new Error(`API Error ${response.status}:${errorText}`)
+            throw new Error(`API Error ${response.status}:${errorText}`);
         }
 
         if(!response.body){
@@ -134,7 +134,7 @@ export class ApiClient implements vscode.Disposable{
                     if(line.startsWith('data: ')){
                         const data=line.slice(6);
 
-                        if(data=='[DONE]'){
+                        if(data ==='[DONE]'){
                             return;
                         }
                         try{
@@ -142,11 +142,11 @@ export class ApiClient implements vscode.Disposable{
                             if (chunk.choices && chunk.choices.length > 0 ){
                                 const content =chunk.choices[0].delta?.content;
                                 if (content){
-                                    yield content
+                                    yield content;
                                 }
                             }
                         }catch(error){
-                            this.log(`parse error :${error}`)
+                            this.log(`parse error :${error}`);
 
                         }
 
@@ -160,7 +160,7 @@ export class ApiClient implements vscode.Disposable{
         }
     }
     private log(message:string):void{
-        this.outputChannel.appendLine(`[ApiClient] ${message}`)
+        this.outputChannel.appendLine(`[ApiClient] ${message}`);
     }
     dispose() {
         this.cancel();

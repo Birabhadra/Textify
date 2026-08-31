@@ -282,12 +282,12 @@ export function parseImportBindings(text: string, languageId: string): ImportBin
 
     const recordBinding = (original: string, local?: string): void => {
         const orig = original.trim();
-        if (!orig) return;
+        if (!orig) {return;}
 
         importedOriginalNames.add(orig);
 
         const localName = (local ?? original).trim();
-        if (!localName) return;
+        if (!localName) {return;}
 
         let aliases = importedAliasesByOriginal.get(orig);
         if (!aliases) {
@@ -460,7 +460,7 @@ function parseRustImports(text: string, record: (orig: string, local?: string) =
         const items = match[1].split(',');
         for (const item of items) {
             const trimmed = item.trim();
-            if (!trimmed || trimmed === 'self' || trimmed === 'super') continue;
+            if (!trimmed || trimmed === 'self' || trimmed === 'super') {continue;}
 
             const asMatch = trimmed.match(/^(\w+)\s+as\s+(\w+)$/);
             if (asMatch) {
@@ -503,7 +503,7 @@ function parseGoImports(text: string, record: (orig: string, local?: string) => 
 function parseGoImportLine(line: string, record: (orig: string, local?: string) => void): void {
     // Remove quotes
     const clean = line.replace(/"/g, '').trim();
-    if (!clean) return;
+    if (!clean) {return;}
 
     const parts = clean.split(/\s+/);
     if (parts.length === 1) {

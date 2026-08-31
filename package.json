@@ -14,11 +14,11 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "keybindings":[
+    "keybindings": [
       {
-      "command": "textify.acceptCompletion",
-      "key": "tab",
-      "when": "editorTextFocus"
+        "command": "textify.acceptCompletion",
+        "key": "tab",
+        "when": "editorTextFocus"
       },
       {
         "command": "textify.rejectCompletion",
@@ -91,7 +91,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
+    "lint": "node -r ./scripts/eslint-ts6-loader.cjs ./node_modules/eslint/bin/eslint.js src",
     "test": "vscode-test"
   },
   "devDependencies": {
@@ -110,8 +110,9 @@
     "tree-sitter-python": "^0.25.0",
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.61.1"
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.61.1",
+    "typescript6": "npm:typescript@^6.0.3"
   },
   "overrides": {
     "diff": "^8.0.4",

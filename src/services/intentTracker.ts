@@ -1,6 +1,6 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
 import { IntentEntry, IntentType, PendingIntent } from "../utils/types";
-import * as crypto from "crypto"
+import * as crypto from "crypto";
 
 export class IntentTracker implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
@@ -12,14 +12,14 @@ export class IntentTracker implements vscode.Disposable {
 
 
     constructor() {
-        this.registerListeners()
+        this.registerListeners();
     }
 
     computeHash():string{
         const content=this.buffer.map(
             e=>`${e.filePath}:${e.timestamp}:${e.type}:${e.content}`
         ).join("|");
-        return crypto.createHash('md5').update(content).digest('hex').slice(0,16)
+        return crypto.createHash('md5').update(content).digest('hex').slice(0,16);
     }
     private registerListeners() {
         //Track the text changes in a document
@@ -33,7 +33,7 @@ export class IntentTracker implements vscode.Disposable {
         //Track the active editor changes(1 file to another)
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor((editor) => {
-                this.handleActiveEditorChange(editor)
+                this.handleActiveEditorChange(editor);
 
             })
         );
@@ -44,7 +44,7 @@ export class IntentTracker implements vscode.Disposable {
     private handleDocumentChange(event: vscode.TextDocumentChangeEvent): void {
         const document = event.document;
         if (document.uri.scheme !== 'file') {
-            return
+            return;
         }
 
         const activeEditor = vscode.window.activeTextEditor;
@@ -57,7 +57,7 @@ export class IntentTracker implements vscode.Disposable {
         const dockey = document.uri.toString();
         const previousVersion = this.lastDocumentVersion.get(dockey);
         const currentVersion = document.version;
-        this.lastDocumentVersion.set(dockey, currentVersion)
+        this.lastDocumentVersion.set(dockey, currentVersion);
 
         if (previousVersion !== undefined && Math.abs(currentVersion - previousVersion) > 1) {
             if (this.pendingIntent && this.pendingIntent.filePath === document.uri.fsPath) {
@@ -69,7 +69,7 @@ export class IntentTracker implements vscode.Disposable {
         }
 
         for (const change of event.contentChanges) {
-            this.processChange(document, change)
+            this.processChange(document, change);
         }
 
 
@@ -77,11 +77,11 @@ export class IntentTracker implements vscode.Disposable {
     private processChange(document: vscode.TextDocument, change: vscode.TextDocumentContentChangeEvent): void {
         const filePath = document.uri.fsPath;
         const now = Date.now();
-        const line = change.range.start.line
+        const line = change.range.start.line;
         const isPaste = change.text.length > 50;
         const currentLineContent = line < document.lineCount ? document.lineAt(line).text : '';
 
-        const canContinuePending = this.pendingIntent && this.pendingIntent.filePath == filePath && (now - this.pendingIntent.lastActivityTime < 1500);
+        const canContinuePending = this.pendingIntent && this.pendingIntent.filePath === filePath && (now - this.pendingIntent.lastActivityTime < 1500);
 
         if (!canContinuePending) {
             this.finalizeIntent();
@@ -95,7 +95,7 @@ export class IntentTracker implements vscode.Disposable {
                 startTime: now,
                 lastActivityTime: now,
                 affectedLines: new Set()
-            }
+            };
         }
 
         this.captureOriginalLineContent(change, line, currentLineContent);
@@ -108,7 +108,7 @@ export class IntentTracker implements vscode.Disposable {
         }
 
         this.pendingIntent.type = this.classifyIntentType(this.pendingIntent);
-        this.scheduleFLush()
+        this.scheduleFLush();
 
 
 
@@ -116,7 +116,7 @@ export class IntentTracker implements vscode.Disposable {
 
     private classifyIntentType(pendingIntent: PendingIntent):IntentType {
         if (pendingIntent.type === 'pasted') {
-            return "pasted"
+            return "pasted";
         }
         let hasAddition=false;
         let hasEdit=false;
@@ -125,13 +125,13 @@ export class IntentTracker implements vscode.Disposable {
             const current=pendingIntent.currentContent.get(line) ?? '';
 
             if(original.trim().length=== 0 && current.trim().length>0){
-                hasAddition=true
+                hasAddition=true;
             }else if (original.trim() !== current.trim()){
-                hasEdit=true
+                hasEdit=true;
             }
         }
-        if (hasEdit) return 'edited';
-        if (hasAddition) return 'added';
+        if (hasEdit) {return 'edited';}
+        if (hasAddition) {return 'added';}
         return 'edited';
     }
     private captureOriginalLineContent(change: vscode.TextDocumentContentChangeEvent, line: number, currentLineContent: string) {
@@ -140,22 +140,22 @@ export class IntentTracker implements vscode.Disposable {
         }
 
         let originalLineContent = currentLineContent;
-        if (change.rangeLength == 0 && change.text.length > 0) {
+        if (change.rangeLength === 0 && change.text.length > 0) {
             const startChar = change.range.start.character;
-            originalLineContent = currentLineContent.slice(0, startChar) + currentLineContent.slice(startChar + change.text.length)
+            originalLineContent = currentLineContent.slice(0, startChar) + currentLineContent.slice(startChar + change.text.length);
 
         }
         this.pendingIntent?.originalContent.set(
             line,
             originalLineContent
-        )
+        );
     }
 
     private scheduleFLush():void{
         this.clearFlushTimeout();
         this.flushTimeout=setTimeout(()=>{
             this.finalizeIntent();
-        },1500)
+        },1500);
     }
     private clearFlushTimeout():void{
         if(this.flushTimeout){
@@ -165,7 +165,7 @@ export class IntentTracker implements vscode.Disposable {
     }
     private finalizeIntent(): void {
         this.clearFlushTimeout();
-        if(!this.pendingIntent) return;
+        if(!this.pendingIntent) {return;}
         const pending=this.pendingIntent;
         this.pendingIntent=null;
 
@@ -181,17 +181,17 @@ export class IntentTracker implements vscode.Disposable {
             }
         }
 
-        if(!hasChange) return;  
+        if(!hasChange) {return;}  
 
         const lines=Array.from(pending.affectedLines).sort((a,b)=>a-b);
         const startLine=lines[0]+1;
-        const endLine=lines[lines.length-1]+1
-        const contentLines:string[]=[]
+        const endLine=lines[lines.length-1]+1;
+        const contentLines:string[]=[];
 
         for (const line of lines){
             const content=pending.currentContent.get(line);
-            if(content!=undefined){
-                contentLines.push(content)
+            if(content!==undefined){
+                contentLines.push(content);
             }
         }
         const content=contentLines.join('\n');
@@ -203,18 +203,18 @@ export class IntentTracker implements vscode.Disposable {
             lineRange:{start:startLine,end:endLine},
             content,
             timestamp:pending.lastActivityTime,
-        }
+        };
 
         const merged=this.mayBeMergeWithRecent(entry);
 
         if(merged){
-            const idx=this.buffer.findIndex(e=>e.id === merged.id)
+            const idx=this.buffer.findIndex(e=>e.id === merged.id);
             if(idx!==-1){
                 this.buffer[idx]=merged;
             }else{
                 this.buffer.push(entry);
                 while (this.buffer.length>35){
-                    this.buffer.shift()
+                    this.buffer.shift();
                 }
             }
         }
@@ -239,15 +239,15 @@ export class IntentTracker implements vscode.Disposable {
 
             const overlap=existing.lineRange.start<=entry.lineRange.end && entry.lineRange.start <= existing.lineRange.end;
 
-            const adjacent=Math.abs(existing.lineRange.end - entry.lineRange.start) <=1 || Math.abs(entry.lineRange.end - existing.lineRange.start) 
+            const adjacent=Math.abs(existing.lineRange.end - entry.lineRange.start) <=1 || Math.abs(entry.lineRange.end - existing.lineRange.start); 
 
             if(overlap || adjacent){
-                const mergedType:IntentType=(existing.type==='edited'|| entry.type==='edited')?'edited':(existing.type==='pasted'|| entry.type==='pasted')?'pasted':entry.type
+                const mergedType:IntentType=(existing.type==='edited'|| entry.type==='edited')?'edited':(existing.type==='pasted'|| entry.type==='pasted')?'pasted':entry.type;
 
                 const mergedRange={
                     start:Math.min(existing.lineRange.start,entry.lineRange.start),
                     end:Math.max(existing.lineRange.end,entry.lineRange.end)
-                }
+                };
 
                 return{
 
@@ -257,7 +257,7 @@ export class IntentTracker implements vscode.Disposable {
                     timestamp:entry.timestamp,
                     lineRange:mergedRange,
                     filePath:entry.filePath
-                }
+                };
 
             }
         }
@@ -265,7 +265,7 @@ export class IntentTracker implements vscode.Disposable {
 
     }
     private handleActiveEditorChange(editor: vscode.TextEditor | undefined): void {
-        if(!this.pendingIntent) return;
+        if(!this.pendingIntent) {return;}
         if(!editor|| editor.document.uri.fsPath !== this.pendingIntent.filePath){
             this.finalizeIntent();
         }
@@ -281,7 +281,7 @@ export class IntentTracker implements vscode.Disposable {
 
         for(const folder of workspaceFolders){
             if(filePath.startsWith(folder.uri.fsPath)){
-                return filePath.slice(folder.uri.fsPath.length+1)
+                return filePath.slice(folder.uri.fsPath.length+1);
             }
         }
         return filePath.split('/').pop() || filePath;
@@ -291,23 +291,23 @@ export class IntentTracker implements vscode.Disposable {
     serialize():string{
         this.finalizeIntent();
 
-        if(this.buffer.length==0){
+        if(this.buffer.length===0){
             return '';
         }
 
         const entries=this.buffer.slice(-35);
-        const lines:string[]=[]
+        const lines:string[]=[];
 
         for(let i=0;i<entries.length;i++){
             const entry=entries[i];
-            const relativePath=this.getRelativePath(entry.filePath)
-            const lineRange=entry.lineRange.start===entry.lineRange.end ? `${entry.lineRange.start}`:`${entry.lineRange.start}-${entry.lineRange.end}`
+            const relativePath=this.getRelativePath(entry.filePath);
+            const lineRange=entry.lineRange.start===entry.lineRange.end ? `${entry.lineRange.start}`:`${entry.lineRange.start}-${entry.lineRange.end}`;
 
-            lines.push(`${i+1}. [${entry.type}] ${relativePath}: ${lineRange} -> "${entry.content}"`)
+            lines.push(`${i+1}. [${entry.type}] ${relativePath}: ${lineRange} -> "${entry.content}"`);
 
         }
 
-        return lines.join('\n')
+        return lines.join('\n');
 
 
 
@@ -322,10 +322,10 @@ export class IntentTracker implements vscode.Disposable {
             lineRange:{start:line,end:line},
             content,
             timestamp:Date.now()
-        }
+        };
         this.buffer.push(entry);
         while(this.buffer.length>35){
-            this.buffer.shift()
+            this.buffer.shift();
         }
     }
     recordRejectedSuggestion(filePath:string,line:number,content:string):void{
@@ -336,10 +336,10 @@ export class IntentTracker implements vscode.Disposable {
             lineRange:{start:line,end:line},
             content,
             timestamp:Date.now()
-        }
+        };
         this.buffer.push(entry);
         while(this.buffer.length>35){
-            this.buffer.shift()
+            this.buffer.shift();
         }
     }
 

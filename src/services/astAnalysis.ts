@@ -17,7 +17,7 @@ const DECLARATION_NODE_TYPES = new Set([
     'decorated_definition',
     'export_statement',
     'assignment'
-])
+]);
 
 const DIRECT_NAME_TYPES = new Set([
     'function_declaration',
@@ -31,7 +31,7 @@ const DIRECT_NAME_TYPES = new Set([
     'struct_item',
     'trait_item',
     'type_item',
-])
+]);
 const CLASS_NODE_TYPES = new Set([
     'class_declaration',
     'class_definition',
@@ -39,7 +39,7 @@ const CLASS_NODE_TYPES = new Set([
 const DECLARATOR_TYPES = new Set([
     'lexical_declaration',
     'variable_declaration'
-])
+]);
 
 const FUNCTION_NODE_TYPES = new Set([
     'function_declaration',
@@ -70,7 +70,7 @@ export function findStatementEnd(tree: TreeSitter.Tree, cursor: { row: number, c
                 bestNode = node;
             }
             for (let i = 0; i < node.namedChildCount; i++) {
-                const child = node.namedChild(i)
+                const child = node.namedChild(i);
                 if (child) {
                     findSmallest(child);
                 }
@@ -86,7 +86,7 @@ export function findStatementEnd(tree: TreeSitter.Tree, cursor: { row: number, c
 
     let current: TreeSitter.Node = bestNode;
 
-    while (current.parent && current.parent != root) {
+    while (current.parent && current.parent !== root) {
         const parentType = current.parent.type;
         current = current.parent;
         if (parentType === 'expression_statement' || parentType === 'return_statement' ||
@@ -99,11 +99,11 @@ export function findStatementEnd(tree: TreeSitter.Tree, cursor: { row: number, c
     return {
         endLine: current.endPosition.row,
         endChar: current.endPosition.column
-    }
+    };
 }
 
 function nodeSpan(node: TreeSitter.Node): number {
-    return node.endIndex - node.startIndex
+    return node.endIndex - node.startIndex;
 }
 function containsPosition(node: TreeSitter.Node, row: number, column: number): boolean {
     const start = node.startPosition;
@@ -148,7 +148,7 @@ function extractNameFromNode(node: TreeSitter.Node, names: Set<string>): void {
     if (DIRECT_NAME_TYPES.has(type)) {
         const namenode = node.childForFieldName('name');
         if (namenode) {
-            names.add(namenode.text)
+            names.add(namenode.text);
         }
         return;
     }
@@ -180,9 +180,9 @@ function extractNameFromNode(node: TreeSitter.Node, names: Set<string>): void {
     }
 
     if (type === 'export_statement') {
-        const declaration = node.childForFieldName('declaration')
+        const declaration = node.childForFieldName('declaration');
         if (declaration) {
-            extractNameFromNode(declaration, names)
+            extractNameFromNode(declaration, names);
         } else {
             for (let i = 0; i < node.namedChildCount; i++) {
                 const child = node.namedChild(i);
@@ -268,7 +268,7 @@ function extractInterfaceOrClassSig(
     targetTypes: Set<string>
 ): string | undefined {
     const decl = findFirstNodeOfType(root, targetTypes);
-    if (!decl) return undefined;
+    if (!decl) {return undefined;}
 
     const body = decl.childForFieldName('body');
     if (!body) {
@@ -286,7 +286,7 @@ function extractInterfaceOrClassSig(
     // Iterate body's named children and strip their bodies
     for (let i = 0; i < body.namedChildCount; i++) {
         const member = body.namedChild(i);
-        if (!member) continue;
+        if (!member) {continue;}
 
         const memberBody = member.childForFieldName('body');
         if (memberBody) {
@@ -330,7 +330,7 @@ function extractFunctionSigFromNode(func: TreeSitter.Node): string | undefined {
 
 function extractVariableSig(root: TreeSitter.Node): string | undefined {
     const decl = findFirstNodeOfType(root, VARIABLE_NODE_TYPES);
-    if (!decl) return undefined;
+    if (!decl) {return undefined;}
 
     // For variable_declarator, remove the initializer value (keep type annotation)
     for (let i = 0; i < decl.namedChildCount; i++) {
@@ -362,13 +362,13 @@ function findFirstNodeOfType(
     root: TreeSitter.Node,
     types: Set<string>
 ): TreeSitter.Node | null {
-    if (types.has(root.type)) return root;
+    if (types.has(root.type)) {return root;}
 
     for (let i = 0; i < root.namedChildCount; i++) {
         const child = root.namedChild(i);
         if (child) {
             const found = findFirstNodeOfType(child, types);
-            if (found) return found;
+            if (found) {return found;}
         }
     }
     return null;

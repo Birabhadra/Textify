@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
 import { BoundedCache, buildCacheKey } from "../cache/boundedCache";
 import { getConfig } from "./configurationService";
 interface DefinitionTarget {
@@ -18,38 +18,38 @@ export class LspService implements vscode.Disposable {
         this.disposables.push(
             configService.onConfigChange((config) => {
                 if (config.lspCacheMaxEntries !== this.currentMaxEntries) {
-                    this.currentMaxEntries = config.lspCacheMaxEntries
+                    this.currentMaxEntries = config.lspCacheMaxEntries;
                     this.cache = new BoundedCache(this.currentMaxEntries);
                 }
             })
-        )
+        );
 
         this.registerListeners();
     }
     private registerListeners(): void {
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument((e) => {
-                this.cache.invalidateGroup(e.document.uri.toString())
+                this.cache.invalidateGroup(e.document.uri.toString());
             }),
             vscode.workspace.onDidCloseTextDocument((doc) => {
-                this.cache.invalidateGroup(doc.uri.toString())
+                this.cache.invalidateGroup(doc.uri.toString());
             })
-        )
+        );
     }
 
     async getDocumentSymbols(document: vscode.TextDocument): Promise<vscode.DocumentSymbol[]> {
         const documentUri = document.uri.toString();
-        const cacheKey = buildCacheKey(documentUri, "documentSymbols")
+        const cacheKey = buildCacheKey(documentUri, "documentSymbols");
         const cached = this.cache.get(cacheKey) as vscode.DocumentSymbol[] | undefined;
 
         if (cached !== undefined) {
-            return cached
+            return cached;
         }
         try {
 
-            const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', document.uri)
+            const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', document.uri);
 
-            this.cache.set(cacheKey, symbols, { groupKey: documentUri })
+            this.cache.set(cacheKey, symbols, { groupKey: documentUri });
 
             return symbols;
         } catch (err) {
@@ -60,20 +60,20 @@ export class LspService implements vscode.Disposable {
 
     async getSuperTypeNames(document: vscode.TextDocument, position: vscode.Position): Promise<string[]> {
         const documentUri = document.uri.toString();
-        const cacheKey = buildCacheKey(documentUri, "SuperTypes", `${position.line}:${position.character}`)
+        const cacheKey = buildCacheKey(documentUri, "SuperTypes", `${position.line}:${position.character}`);
         const cached = this.cache.get(cacheKey) as string[] | undefined;
 
         if (cached !== undefined) {
-            return cached
+            return cached;
         }
         try {
             const prepared = await vscode.commands.executeCommand<RawTypeHeirarchyItems>(
                 'vscode.prepareTypeHeirarchy',
                 document.uri,
                 position
-            )
+            );
             if (!prepared) {
-                return []
+                return [];
             }
             const roots: DefinitionTarget[] = Array.isArray(prepared) ? prepared : [prepared];
             const superTypeResult = await Promise.allSettled(
@@ -81,12 +81,12 @@ export class LspService implements vscode.Disposable {
                     'vscode.provideSupertypes',
                     item
                 ))
-            )
+            );
 
             const names: string[] = [];
             for (const result of superTypeResult) {
                 if (result.status !== 'fulfilled') {
-                    continue
+                    continue;
                 }
                 for (const item of result.value) {
                     names.push(item.name);
@@ -96,14 +96,14 @@ export class LspService implements vscode.Disposable {
             this.cache.set(cacheKey, unique, { groupKey: documentUri });
             return unique;
         }catch(err){
-            return []
+            return [];
         }
 
     }
 
 
     dispose() {
-        this.disposables.forEach((d) => d.dispose())
+        this.disposables.forEach((d) => d.dispose());
         this.cache.clear();
     }
 

@@ -1,4 +1,4 @@
-import * as vscode from "vscode"
+import * as vscode from "vscode";
 export interface TabCompletionConfig{
     //API keys
     fireworksApiKey:string;
@@ -23,11 +23,11 @@ const DEFAULTS:TabCompletionConfig={
     completionCacheMaxEntries:100,
     lspCacheMaxEntries:100,
     completionCacheTtlMs:30000
-}
+};
 
 
 export class ConfigurationService implements vscode.Disposable{
-    private static instance:ConfigurationService|null=null
+    private static instance:ConfigurationService|null=null;
     private cachedConfig: TabCompletionConfig;
     private readonly disposables:vscode.Disposable[]=[];
     private readonly changeListeners: Set<(config:TabCompletionConfig) => void>=new Set();
@@ -54,11 +54,11 @@ export class ConfigurationService implements vscode.Disposable{
                     this.notifyListeners();
                 }
             })
-        )
+        );
     }
 
     private loadConfig(): TabCompletionConfig{
-        const config=vscode.workspace.getConfiguration('textify')
+        const config=vscode.workspace.getConfiguration('textify');
         return {
             fireworksApiKey:config.get<string>('fireworksApiKey',DEFAULTS.fireworksApiKey),
             openrouterApiKey:config.get<string>('openrouterApiKey',DEFAULTS.openrouterApiKey),
@@ -68,7 +68,7 @@ export class ConfigurationService implements vscode.Disposable{
             completionCacheMaxEntries:config.get<number>('completionCacheMaxEntries',DEFAULTS.completionCacheMaxEntries),
             lspCacheMaxEntries:config.get<number>('lspCacheMaxEntries',DEFAULTS.lspCacheMaxEntries),
             completionCacheTtlMs:config.get<number>('completionCacheTtlMs',DEFAULTS.completionCacheTtlMs)
-        }
+        };
     }
 
     private notifyListeners():void{
@@ -81,18 +81,18 @@ export class ConfigurationService implements vscode.Disposable{
         }
     }
 
-    get model():string {return this.cachedConfig.model}
-    get maxTokens():number {return this.cachedConfig.maxTokens}
-    get groqApiKey():string {return this.cachedConfig.groqApiKey}
-    get openrouterApiKey():string {return this.cachedConfig.openrouterApiKey}
-    get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey}
-    get completionCacheMaxEntries():number {return this.cachedConfig.completionCacheMaxEntries}
-    get completionCacheTtlMs():number {return this.cachedConfig.completionCacheTtlMs}
-    get lspCacheMaxEntries():number {return this.cachedConfig.lspCacheMaxEntries}
+    get model():string {return this.cachedConfig.model;}
+    get maxTokens():number {return this.cachedConfig.maxTokens;}
+    get groqApiKey():string {return this.cachedConfig.groqApiKey;}
+    get openrouterApiKey():string {return this.cachedConfig.openrouterApiKey;}
+    get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey;}
+    get completionCacheMaxEntries():number {return this.cachedConfig.completionCacheMaxEntries;}
+    get completionCacheTtlMs():number {return this.cachedConfig.completionCacheTtlMs;}
+    get lspCacheMaxEntries():number {return this.cachedConfig.lspCacheMaxEntries;}
 
     onConfigChange(callback:(config:TabCompletionConfig)=>void):vscode.Disposable{
         this.changeListeners.add(callback);
-        return {dispose: ()=> this.changeListeners.delete(callback)}
+        return {dispose: ()=> this.changeListeners.delete(callback)};
     }
     dispose() {
         this.disposables.forEach(d=>d.dispose());

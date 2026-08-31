@@ -1,5 +1,5 @@
-import * as vscode from "vscode"
-import { BoundedCache, buildCacheKey } from "../../cache/boundedCache"
+import * as vscode from "vscode";
+import { BoundedCache, buildCacheKey } from "../../cache/boundedCache";
 import { IndexedSymbol } from "../../utils/types";
 import { ASTService} from "../astService";
 import { extractSignatureFromAST } from "../astAnalysis";
@@ -11,16 +11,16 @@ export class SignatureProvider {
     }
 
     async extract(symbols: IndexedSymbol[]): Promise<IndexedSymbol[]> {
-        const res: IndexedSymbol[] = []
+        const res: IndexedSymbol[] = [];
         for (const symbol of symbols) {
             const signature = await this.extractSignature(symbol);
             if (!signature) {
                 continue;
             }
-            res.push({ ...symbol, signature })
+            res.push({ ...symbol, signature });
 
         }
-        return res
+        return res;
     }
 
     private async extractSignature(symbol: IndexedSymbol): Promise<string | undefined> {
@@ -45,15 +45,15 @@ export class SignatureProvider {
             symbol.range.startLine,
             symbol.range.startCharacter,
             symbol.range.endLine,
-            symbol.range.endCharacter)
+            symbol.range.endCharacter);
         const fullText=document.getText(range);
 
-        const signature=this.astService.withParsedTree(fullText,(tree)=>extractSignatureFromAST(tree,symbol.kind))
+        const signature=this.astService.withParsedTree(fullText,(tree)=>extractSignatureFromAST(tree,symbol.kind));
 
         if(signature){
             this.signatureCache.set(cacheKey,signature,{groupKey:symbol.uri});
         }else{
-            return undefined
+            return undefined;
         }
         return signature;
     }
