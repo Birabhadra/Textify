@@ -1,7 +1,7 @@
 # Textify
 <h1 align="center">
   <br>
-  <img width="1536" height="1024" alt="ChatGPT Image Sep 2, 2026, 11_47_16 AM" src="https://github.com/user-attachments/assets/bd8046a3-21ba-4e57-b88d-6a54e0ec797c" />
+  <img width="1536" alt="ChatGPT Image Sep 2, 2026, 11_47_16 AM" src="https://github.com/user-attachments/assets/bd8046a3-21ba-4e57-b88d-6a54e0ec797c" />
 
 </h1>
 
