@@ -250,13 +250,33 @@ npm run test
 ```
 
 ---
+### More detailed architecture
 
-## Known Issues
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/3ac1dedc-c203-4944-8390-97cc3ab77ac0"
+    alt="Textify Detailed Architecture" />
+</p>
 
-- The `textify.helloWorld` command is present in the extension manifest but is not yet a key runtime feature.
-- Intent tracking exists in the codebase but is not yet fully integrated into all completion prompts.
-- Several advanced architecture components are planned and are being incrementally added.
+### Inline Completion Provider detailed Architecture
 
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/00d7c4df-6259-42eb-a3ec-48991ccd8ce8"
+    alt="Inline Completion Provider Architecture"
+    height="700"
+  />
+</p>
+
+### Context Gatherer detailed Architecture
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/ac0b816c-ab5e-4957-b372-f44b7e4b5233"
+    alt="Context Gatherer Architecture"
+    height='700'
+  />
+</p>
 ---
 
 ## Resources
