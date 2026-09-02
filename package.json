@@ -2,7 +2,7 @@
   "name": "textify",
   "displayName": "Textify",
   "description": "Repository-aware AI code completion for VS Code, combining LLMs, AST analysis, LSP context, caching, and intelligent code retrieval.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "BirabhadraSahoo",
   "engines": {
     "vscode": "^1.125.0"
