@@ -1,14 +1,32 @@
 {
   "name": "textify",
   "displayName": "Textify",
-  "description": "A VS Code AI Autocomplete Engine that provides real-time, repository-aware code completions as developers type.",
+  "description": "Repository-aware AI code completion for VS Code, combining LLMs, AST analysis, LSP context, caching, and intelligent code retrieval.",
   "version": "0.0.1",
+  "publisher": "BirabhadraSahoo",
   "engines": {
     "vscode": "^1.125.0"
   },
-  "categories": [
-    "Other"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Birabhadra/Textify"
+  },
+  "bugs": {
+    "url": "https://github.com/Birabhadra/Textify/issues"
+  },
+  "homepage": "https://github.com/Birabhadra/Textify",
+  "keywords": [
+    "ai",
+    "autocomplete",
+    "code-completion",
+    "llm",
+    "developer-tools",
+    "code-assistant",
+    "productivity",
+    "rag"
   ],
+  "icon": "images/logo.png",
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -61,7 +79,7 @@
           "default": 100,
           "minimum": 10,
           "maximum": 1000,
-          "description": "Maximum Entries in completion cache"
+          "description": "Maximum number of entries in the completion cache"
         },
         "textify.lspCacheMaxEntries": {
           "type": "number",
@@ -78,20 +96,14 @@
           "description": "Completion Cache TTl in milliseconds"
         }
       }
-    },
-    "commands": [
-      {
-        "command": "textify.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "node -r ./scripts/eslint-ts6-loader.cjs ./node_modules/eslint/bin/eslint.js src",
+    "lint": "eslint src",
     "test": "vscode-test"
   },
   "devDependencies": {
@@ -110,9 +122,9 @@
     "tree-sitter-python": "^0.25.0",
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
-    "typescript": "^7.0.2",
-    "typescript-eslint": "^8.61.1",
-    "typescript6": "npm:typescript@^6.0.3"
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.61.1"
+
   },
   "overrides": {
     "diff": "^8.0.4",

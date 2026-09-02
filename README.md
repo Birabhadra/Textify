@@ -1,9 +1,10 @@
-
+# Textify
 <h1 align="center">
   <br>
   <img width="1536" height="1024" alt="ChatGPT Image Sep 2, 2026, 11_47_16 AM" src="https://github.com/user-attachments/assets/bd8046a3-21ba-4e57-b88d-6a54e0ec797c" />
 
 </h1>
+
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.0.1-blue.svg" alt="Version" />
   <img src="https://img.shields.io/badge/vscode-%5E1.125.0-brightgreen.svg" alt="VS Code" />
