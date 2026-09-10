@@ -34,7 +34,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         this.deDuplicationService=new DeduplicationService();
         this.deletionDecoration=new DeletionDecoration();
     }
-    getPenditEdit():ReplacementEdit|null{
+    getPendingEdit():ReplacementEdit|null{
         return this.pendingCompletion?.edit?? null;
     }
 
@@ -43,7 +43,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
-            this.log(`provideInlinecompletionitems called at ${position.line}:${position.character}`);
+            this.log(`provideInlineCompletionItems called at ${position.line}:${position.character}`);
             //stage 1
             const pendingCompletionResult=this.handleExistingPendingCompletion(document,position);
             if(pendingCompletionResult !== undefined){
@@ -80,6 +80,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
 
             completion=this.cleanCompletionText(completion);
+            completion=this.normalizeIndentation(completion,document);
             const deDupResult=this.deDuplicationService.check(document,position,completion);
 
             if(!deDupResult.proceed){
@@ -141,6 +142,38 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         const explanationPattern = /\n\n(?:\/\/|\/\*|#|Note:|Explanation:)[\s\S]*$/;
         cleaned = cleaned.replace(explanationPattern, '');
         return cleaned.trimEnd();
+    }
+
+    private normalizeIndentation(text: string, document: vscode.TextDocument): string {
+        if (!text.includes('\n')) {
+            return text;
+        }
+
+        const editor = vscode.window.activeTextEditor;
+        const matchesTargetDocument = editor !== undefined && editor.document.uri.toString() === document.uri.toString();
+        const insertSpaces = matchesTargetDocument ? editor!.options.insertSpaces !== false : true;
+        const rawTabSize = matchesTargetDocument ? editor!.options.tabSize : undefined;
+        const tabSize = typeof rawTabSize === 'number' && rawTabSize > 0 ? rawTabSize : 4;
+
+        const lines = text.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+            const leadingMatch = lines[i].match(/^[ \t]*/);
+            const leading = leadingMatch ? leadingMatch[0] : '';
+            if (!leading) {
+                continue;
+            }
+            const rest = lines[i].slice(leading.length);
+
+            if (insertSpaces) {
+                if (leading.includes('\t')) {
+                    lines[i] = leading.replace(/\t/g, ' '.repeat(tabSize)) + rest;
+                }
+            } else if (!leading.includes('\t') && leading.length % tabSize === 0) {
+                lines[i] = '\t'.repeat(leading.length / tabSize) + rest;
+            }
+        }
+
+        return lines.join('\n');
     }
 
 
@@ -240,6 +273,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
     clearPendingCompletion():void{
         this.pendingCompletion=null;
+        this.lastCompletionText='';
+        this.lastCompletionPosition=null;
+        this.lastCompletionUri=null;
         this.deletionDecoration.clearDecorations();
     }
     private async callCompletionApi(

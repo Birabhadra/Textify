@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
 	outputChannel.appendLine('Textify extension activated');
 	astService = new ASTService(context.extensionPath);
 	astService.initialize().then(() => {
-		outputChannel?.appendLine('AST servicd initialized');
+		outputChannel?.appendLine('AST service initialized');
 		const activeEditor = vscode.window.activeTextEditor;
 		if (activeEditor) {
 			astService?.ensureLanguage(activeEditor.document.languageId);
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			const pendingEdit = provider.getPenditEdit();
+			const pendingEdit = provider.getPendingEdit();
 			if (!pendingEdit) {
 				outputChannel?.appendLine('[Extension] No pending edit,Falling back to normal tab behaviour');
 				await vscode.commands.executeCommand('tab');
@@ -81,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			const pendingEdit = provider.getPenditEdit();
+			const pendingEdit = provider.getPendingEdit();
 			if (!pendingEdit) {
 				outputChannel?.appendLine('[Extension] No pending edit,Falling back to normal tab behaviour');
 				return;
@@ -91,6 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 				pendingEdit.deleteRange.start.line + 1,
 				pendingEdit.insertText
 			);
+			provider.clearPendingCompletion();
 		}
 
 	);

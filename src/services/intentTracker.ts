@@ -8,7 +8,7 @@ export class IntentTracker implements vscode.Disposable {
     private lastDocumentVersion: Map<string, number> = new Map();
     private pendingIntent: PendingIntent | null = null;
     private flushTimeout:NodeJS.Timeout| null =null;
-    private idCOunter:number=0;
+    private idCounter:number=0;
 
 
     constructor() {
@@ -197,7 +197,7 @@ export class IntentTracker implements vscode.Disposable {
         const content=contentLines.join('\n');
 
         const entry:IntentEntry={
-            id:`intent_${++this.idCOunter}`,
+            id:`intent_${++this.idCounter}`,
             type:pending.type,
             filePath:pending.filePath,
             lineRange:{start:startLine,end:endLine},
@@ -239,7 +239,7 @@ export class IntentTracker implements vscode.Disposable {
 
             const overlap=existing.lineRange.start<=entry.lineRange.end && entry.lineRange.start <= existing.lineRange.end;
 
-            const adjacent=Math.abs(existing.lineRange.end - entry.lineRange.start) <=1 || Math.abs(entry.lineRange.end - existing.lineRange.start); 
+            const adjacent=Math.abs(existing.lineRange.end - entry.lineRange.start) <=1 || Math.abs(entry.lineRange.end - existing.lineRange.start) <=1;
 
             if(overlap || adjacent){
                 const mergedType:IntentType=(existing.type==='edited'|| entry.type==='edited')?'edited':(existing.type==='pasted'|| entry.type==='pasted')?'pasted':entry.type;
@@ -316,7 +316,7 @@ export class IntentTracker implements vscode.Disposable {
     recordAcceptedSuggestion(filePath:string,line:number,content:string):void{
         this.finalizeIntent();
         const entry:IntentEntry={
-            id:`intent_${++this.idCOunter}`,
+            id:`intent_${++this.idCounter}`,
             type:`accepted`,
             filePath,
             lineRange:{start:line,end:line},
@@ -330,7 +330,7 @@ export class IntentTracker implements vscode.Disposable {
     }
     recordRejectedSuggestion(filePath:string,line:number,content:string):void{
         const entry:IntentEntry={
-            id:`intent_${++this.idCOunter}`,
+            id:`intent_${++this.idCounter}`,
             type:`rejected`,
             filePath,
             lineRange:{start:line,end:line},

@@ -45,14 +45,6 @@ export class ReplacementRegionStage {
             }
         }
 
-        if (trimmed.length < 20) {
-            const statementTerminators = [':', '{', '}', ':'];
-            const endsWithTerminator = statementTerminators.some((terminator) => {
-                if (!endsWithTerminator) {
-                    return true;
-                }
-            });
-        }
         return false;
 
     }

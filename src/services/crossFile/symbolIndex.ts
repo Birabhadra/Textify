@@ -15,7 +15,7 @@ export class SymbolIndex{
             const cachedKey=buildCacheKey('SymbolIndex',uri);
             const entry=this.cache.get(cachedKey);
             if(!entry){
-                this.trackedUris.delete(cachedKey);
+                this.trackedUris.delete(uri);
                 continue;
             }
 

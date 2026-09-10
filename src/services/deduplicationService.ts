@@ -27,7 +27,7 @@ export class DeduplicationService {
         }
 
         if (this.hasTrailingOverlap(completion, document, position)) {
-            return { proceed: false, completion, reasonText: `Trailing duplicate code below cursor ` };
+            return { proceed: false, completion, reasonText: `Trailing duplicate code below cursor` };
 
         }
 
