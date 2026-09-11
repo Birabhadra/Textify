@@ -1,46 +1,73 @@
 # Textify
+
 <h1 align="center">
   <br>
-  <img width="1536" alt="ChatGPT Image Sep 2, 2026, 11_47_16 AM" src="https://github.com/user-attachments/assets/bd8046a3-21ba-4e57-b88d-6a54e0ec797c" />
-
+  <img width="1536" alt="Textify banner" src="https://github.com/user-attachments/assets/bd8046a3-21ba-4e57-b88d-6a54e0ec797c" />
 </h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.1-blue.svg" alt="Version" />
-  <img src="https://img.shields.io/badge/vscode-%5E1.125.0-brightgreen.svg" alt="VS Code" />
-  <img src="https://img.shields.io/badge/status-Active-success.svg" alt="Status" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify">
+    <img src="https://img.shields.io/badge/VS%20Code%20Marketplace-BirabhadraSahoo.textify-blue?logo=visualstudiocode" alt="VS Code Marketplace" />
+  </a>
+  <img src="https://img.shields.io/badge/version-0.0.3-blue.svg" alt="Version" />
+  <img src="https://img.shields.io/badge/vscode-%5E1.125.0-brightgreen.svg" alt="VS Code Engine" />
+  <img src="https://img.shields.io/badge/license-MIT-informational.svg" alt="License" />
 </p>
 
-<h4 align="center">AI-powered inline code completions for VS Code with context-aware replacement editing.</h4>
+<h4 align="center">AI-powered inline code completions for VS Code with context-aware, replacement-style editing.</h4>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify"><b>📦 Install from the VS Code Marketplace</b></a>
+</p>
 
 <p align="center">
   <a href="#features">Features</a> •
+  <a href="#getting-started">Getting Started</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#project-structure">Structure</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#settings">Settings</a>
+  <a href="#settings">Settings</a> •
+  <a href="#resources">Resources</a>
 </p>
 
 ---
 
 ## Overview
 
-Textify is a context-aware AI completion engine built for VS Code. Instead of only inserting text at the cursor, it understands the surrounding code, looks up nearby symbols and imports, and can propose replacement-style edits that preserve developer intent.
+Textify is a context-aware AI completion engine for VS Code. Instead of only inserting text at the cursor, it
+understands the surrounding code, looks up nearby symbols and imports via the AST and the language server, and
+proposes **replacement-style edits** — the model can rewrite the rest of the current statement, not just append
+to it, and the diff is minimized before anything is shown to you.
 
-This extension is designed for fast iteration in real-world coding sessions, helping with:
+Built for fast iteration in real-world coding sessions, it helps with:
 
-- typo correction
-- partial expression completion
-- statement rewrites with minimal diff noise
-- multi-file context awareness
-- smarter acceptance behavior in editor flows
+- Typo correction
+- Partial expression completion
+- Statement rewrites with minimal diff noise
+- Multi-file, cross-symbol context awareness
+- Smarter accept/reject behavior in your normal editor flow
+
+---
+
+## Install
+
+**From the Marketplace:** [BirabhadraSahoo.textify](https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify)
+
+**From the command line:**
+
+```bash
+code --install-extension BirabhadraSahoo.textify
+```
+
+**From the editor:** open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`), search for **Textify**, and click Install.
+
+After installing, add at least one AI provider API key — see [Configure credentials](#3-configure-credentials).
 
 ---
 
 ## Features
 
-- AI-powered inline completions with provider fallback support
+- AI-powered inline completions with multi-provider fallback (OpenRouter, Groq, Fireworks)
 - Replacement-style edits that can overwrite the active region instead of only appending text
 - Tree-sitter-based AST awareness for safer statement and scope boundaries
 - Cross-file context gathering using workspace symbols and import analysis
@@ -52,11 +79,72 @@ This extension is designed for fast iteration in real-world coding sessions, hel
 
 ---
 
+## Getting Started
+
+### Prerequisites
+
+- [Visual Studio Code](https://code.visualstudio.com/) `^1.125.0`
+- At least one AI provider API key: [OpenRouter](https://openrouter.ai/), [Groq](https://groq.com/), or [Fireworks](https://fireworks.ai/)
+
+### 1. Install the extension
+
+See [Install](#install) above.
+
+### 2. Configure credentials
+
+Open your VS Code `settings.json` (or the Settings UI, search "Textify") and add one provider key:
+
+```json
+{
+  "textify.openrouterApiKey": "YOUR_OPENROUTER_KEY",
+  "textify.model": "qwen/qwen3-32b",
+  "textify.maxTokens": 500
+}
+```
+
+Textify checks for a configured key in this priority order: OpenRouter → Groq → Fireworks.
+
+### 3. Use it
+
+- Open any supported source file and start typing.
+- Suggestions appear as inline ghost text, with any replaced code shown struck through.
+- Press `Tab` to accept, `Escape` to reject.
+
+---
+
 ## Architecture
 
-Textify collects editor context, assembles a structured prompt, and then validates the generated edit before presenting it as inline ghost text.
+Textify collects editor context, assembles a structured prompt, and then validates the generated edit before
+presenting it as inline ghost text.
 
-<div align="center">
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/3ac1dedc-c203-4944-8390-97cc3ab77ac0"
+    alt="Textify architecture overview" />
+</p>
+
+<details>
+<summary><b>Inline Completion Provider — detailed flow</b></summary>
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/00d7c4df-6259-42eb-a3ec-48991ccd8ce8"
+    alt="Inline Completion Provider Architecture"
+    height="700" />
+</p>
+</details>
+
+<details>
+<summary><b>Context Gatherer — detailed flow</b></summary>
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/ac0b816c-ab5e-4957-b372-f44b7e4b5233"
+    alt="Context Gatherer Architecture"
+    height="700" />
+</p>
+</details>
+
+<details>
+<summary>Mermaid source (renders on GitHub; view the images above if you're reading this on the Marketplace)</summary>
 
 ```mermaid
 flowchart LR
@@ -72,12 +160,6 @@ flowchart LR
     H --> I[Ghost Text + Replacement Edit]
     I --> J[Tab Accept / Escape Reject]
 ```
-
-</div>
-
-### Completion pipeline
-
-<div align="center">
 
 ```mermaid
 sequenceDiagram
@@ -99,7 +181,7 @@ sequenceDiagram
     User->>VS: Accept or reject suggestion
 ```
 
-</div>
+</details>
 
 ---
 
@@ -109,10 +191,10 @@ sequenceDiagram
 | --- | --- |
 | Core | VS Code Extension API, TypeScript |
 | AI Providers | OpenRouter, Groq, Fireworks |
-| Parsing | Tree-sitter |
+| Parsing | Tree-sitter (`web-tree-sitter`) |
 | Context | Workspace symbols, imports, AST analysis |
 | Editor UX | Inline ghost text, replacement decoration |
-| Build/Test | TypeScript, ESLint, VS Code test runner |
+| Build/Test | TypeScript, ESLint, VS Code test runner (`vscode-test`) |
 
 ---
 
@@ -135,19 +217,19 @@ textify/
 │   │   ├── intentTracker.ts
 │   │   ├── lspService.ts
 │   │   ├── promptBuilder.ts
-│   │   └── contextStages/
-│   │       ├── localDependencyResolver.ts
-│   │       ├── prefixStage.ts
-│   │       ├── replacementRegionStage.ts
-│   │       └── suffixStage.ts
+│   │   ├── contextStages/
+│   │   │   ├── localDependencyResolver.ts
+│   │   │   ├── prefixStage.ts
+│   │   │   ├── replacementRegionStage.ts
+│   │   │   └── suffixStage.ts
+│   │   └── crossFile/
+│   │       ├── crossFileService.ts
+│   │       ├── referenceExtractor.ts
+│   │       ├── signatureProvider.ts
+│   │       └── symbolIndex.ts
 │   ├── cache/
 │   │   ├── boundedCache.ts
 │   │   └── completionCache.ts
-│   ├── crossFile/
-│   │   ├── crossFileService.ts
-│   │   ├── referenceExtractor.ts
-│   │   ├── signatureProvider.ts
-│   │   └── symbolIndex.ts
 │   ├── ui/
 │   │   └── deletionDecoration.ts
 │   ├── utils/
@@ -169,50 +251,9 @@ textify/
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+
-- [Visual Studio Code](https://code.visualstudio.com/)
-- At least one AI provider API key: OpenRouter, Groq, or Fireworks
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Launch the extension in development mode
-
-1. Open the project in VS Code.
-2. Press `F5` to run the extension in a new Extension Development Host window.
-3. Open any supported source file.
-4. Start typing to trigger inline completions.
-
-### 3. Configure credentials
-
-Add your API key in VS Code settings, for example:
-
-```json
-{
-  "textify.openrouterApiKey": "YOUR_OPENROUTER_KEY",
-  "textify.model": "qwen/qwen3-32b",
-  "textify.maxTokens": 500
-}
-```
-
-### 4. Use the extension
-
-- Type in a supported language file.
-- Watch inline suggestions appear as ghost text.
-- Press `Tab` to accept or `Escape` to reject.
-
----
-
 ## Settings
 
-### Core settings
+All settings live under the `textify.*` namespace.
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -221,13 +262,8 @@ Add your API key in VS Code settings, for example:
 | `textify.fireworksApiKey` | `""` | Fireworks API key |
 | `textify.model` | `"qwen/qwen3-32b"` | Active model for completions |
 | `textify.maxTokens` | `500` | Maximum generated output tokens |
-
-### Planned settings
-
-| Setting | Default | Description |
-| --- | --- | --- |
 | `textify.CompletionCacheMaxEntries` | `100` | Max completion cache entries |
-| `textify.completionCacheTtlMs` | `30000` | Cache expiry time in milliseconds |
+| `textify.completionCacheTtlMs` | `30000` | Completion cache expiry time in milliseconds |
 | `textify.lspCacheMaxEntries` | `100` | Max LSP service cache entries |
 
 ---
@@ -239,49 +275,28 @@ Add your API key in VS Code settings, for example:
 | `Tab` | Accept the active completion |
 | `Escape` | Reject the active completion |
 
+These bindings apply whenever an editor has focus; `Tab` falls back to VS Code's default `tab` command when
+there is no pending Textify suggestion.
+
 ---
 
 ## Development
 
 ```bash
-npm run compile
-npm run watch
-npm run lint
-npm run test
+npm install              # install deps (also fetches tree-sitter grammar packages)
+npm run compile          # tsc -p ./  (src/ -> out/)
+npm run watch            # tsc -watch -p ./
+npm run lint             # eslint src
+npm run test             # compiles, lints, then runs vscode-test
 ```
 
----
-### More detailed architecture
+Press `F5` in VS Code to launch an Extension Development Host and try changes locally.
 
-<p align="center">
-  <img
-    src="https://github.com/user-attachments/assets/3ac1dedc-c203-4944-8390-97cc3ab77ac0"
-    alt="Textify Detailed Architecture" />
-</p>
-
-### Inline Completion Provider detailed Architecture
-
-<p align="center">
-  <img
-    src="https://github.com/user-attachments/assets/00d7c4df-6259-42eb-a3ec-48991ccd8ce8"
-    alt="Inline Completion Provider Architecture"
-    height="700"
-  />
-</p>
-
-### Context Gatherer detailed Architecture
-
-<p align="center">
-  <img
-    src="https://github.com/user-attachments/assets/ac0b816c-ab5e-4957-b372-f44b7e4b5233"
-    alt="Context Gatherer Architecture"
-    height='700'
-  />
-</p>
 ---
 
 ## Resources
 
+- [VS Code Marketplace listing](https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify)
 - [CHANGELOG.md](./CHANGELOG.md)
 - [vsc-extension-quickstart.md](./vsc-extension-quickstart.md)
 - [VS Code Extension API](https://code.visualstudio.com/api)
@@ -292,6 +307,12 @@ npm run test
 
 1. Create a feature branch.
 2. Make your changes.
-3. Run linting and tests.
+3. Run linting and tests (`npm run lint && npm run test`).
 4. Open a pull request with clear notes and reproduction steps.
 
+---
+
+## License
+
+MIT — see [package.json](./package.json) for details.
+</content>
