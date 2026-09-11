@@ -2,7 +2,7 @@
   "name": "textify",
   "displayName": "Textify",
   "description": "Repository-aware AI code completion for VS Code, combining LLMs, AST analysis, LSP context, caching, and intelligent code retrieval.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "BirabhadraSahoo",
   "engines": {
     "vscode": "^1.125.0"
@@ -104,7 +104,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package":"vsce package"
   },
   "devDependencies": {
     "@types/emscripten": "^1.41.5",
