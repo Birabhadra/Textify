@@ -67,6 +67,7 @@ export class DashboardViewProvider implements vscode.WebviewViewProvider {
             fireworksApiKey: config.fireworksApiKey,
             openrouterApiKey: config.openrouterApiKey,
             groqApiKey: config.groqApiKey,
+            geminiApiKey: config.geminiApiKey,
             provider: config.provider,
             model: config.model,
             maxTokens: config.maxTokens,

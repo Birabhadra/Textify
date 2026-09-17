@@ -7,6 +7,7 @@ export interface TabCompletionConfig{
     fireworksApiKey:string;
     openrouterApiKey:string;
     groqApiKey:string;
+    geminiApiKey:string;
     //models
     provider:ProviderSelection;
     model:string;
@@ -28,6 +29,7 @@ const DEFAULTS:TabCompletionConfig={
     fireworksApiKey:'',
     openrouterApiKey:'',
     groqApiKey:'',
+    geminiApiKey:'',
     provider:'auto',
     model:'qwen/qwen3-32b',
     maxTokens:500,
@@ -79,6 +81,7 @@ export class ConfigurationService implements vscode.Disposable{
             fireworksApiKey:config.get<string>('fireworksApiKey',DEFAULTS.fireworksApiKey),
             openrouterApiKey:config.get<string>('openrouterApiKey',DEFAULTS.openrouterApiKey),
             groqApiKey:config.get<string>('groqApiKey',DEFAULTS.groqApiKey),
+            geminiApiKey:config.get<string>('geminiApiKey',DEFAULTS.geminiApiKey),
             provider:config.get<ProviderSelection>('provider',DEFAULTS.provider),
             model:config.get<string>('model',DEFAULTS.model),
             maxTokens:config.get<number>('maxTokens',DEFAULTS.maxTokens),
@@ -109,6 +112,7 @@ export class ConfigurationService implements vscode.Disposable{
     get groqApiKey():string {return this.cachedConfig.groqApiKey;}
     get openrouterApiKey():string {return this.cachedConfig.openrouterApiKey;}
     get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey;}
+    get geminiApiKey():string {return this.cachedConfig.geminiApiKey;}
     get useAst():boolean {return this.cachedConfig.useAst;}
     get useLsp():boolean {return this.cachedConfig.useLsp;}
     get useCrossFileContext():boolean {return this.cachedConfig.useCrossFileContext;}

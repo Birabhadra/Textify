@@ -1,11 +1,11 @@
-export type ApiProvider = 'openrouter' | 'groq' | 'fireworks';
+export type ApiProvider = 'openrouter' | 'groq' | 'fireworks' | 'gemini';
 export type ProviderSelection = 'auto' | ApiProvider;
 
 export interface ProviderDefinition {
     id: ApiProvider;
     label: string;
     endPoint: string;
-    apiKeyConfigKey: 'openrouterApiKey' | 'groqApiKey' | 'fireworksApiKey';
+    apiKeyConfigKey: 'openrouterApiKey' | 'groqApiKey' | 'fireworksApiKey' | 'geminiApiKey';
     models: string[];
     extraBodyFields?: () => Record<string, unknown>;
 }
@@ -43,6 +43,17 @@ export const PROVIDERS: ProviderDefinition[] = [
         models: [
             'accounts/fireworks/models/qwen2p5-coder-32b-instruct',
             'accounts/fireworks/models/llama-v3p3-70b-instruct'
+        ]
+    },
+    {
+        id: 'gemini',
+        label: 'Gemini',
+        endPoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+        apiKeyConfigKey: 'geminiApiKey',
+        models: [
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+            'gemini-2.5-pro'
         ]
     }
 ];
