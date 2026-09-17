@@ -1,0 +1,133 @@
+body {
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-sideBar-background);
+    padding: 0 12px 24px;
+}
+
+h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--vscode-descriptionForeground);
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    padding-bottom: 4px;
+    margin-top: 20px;
+}
+
+.field {
+    margin-bottom: 10px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.field .description {
+    display: block;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 2px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+    width: 100%;
+    box-sizing: border-box;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+input[list] {
+    width: 100%;
+}
+
+button {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 2px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+button.secondary {
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+button.secondary:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+    flex: none;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch .slider {
+    position: absolute;
+    inset: 0;
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 18px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.switch .slider::before {
+    content: "";
+    position: absolute;
+    height: 12px;
+    width: 12px;
+    left: 2px;
+    top: 2px;
+    background-color: var(--vscode-foreground);
+    border-radius: 50%;
+    transition: 0.15s;
+}
+
+.switch input:checked + .slider {
+    background-color: var(--vscode-button-background);
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(16px);
+}
+
+.advanced-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}

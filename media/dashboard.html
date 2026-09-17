@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
+    <link rel="stylesheet" href="{{styleUri}}">
+    <title>Textify Settings</title>
+</head>
+<body>
+    <h2>General</h2>
+    <div class="row">
+        <label for="enabled">Enable Textify</label>
+        <label class="switch">
+            <input type="checkbox" id="enabled" data-key="enabled" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <h2>Models</h2>
+    <div class="field">
+        <label for="provider">Provider</label>
+        <select id="provider" data-key="provider" data-type="string">
+            <option value="auto">Auto (first configured key)</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="model">Model</label>
+        <input type="text" id="model" data-key="model" data-type="string" list="model-options">
+        <datalist id="model-options"></datalist>
+    </div>
+    <div class="field">
+        <label for="maxTokens">Max tokens</label>
+        <input type="number" id="maxTokens" data-key="maxTokens" data-type="number" min="50" max="5000">
+    </div>
+
+    <h2>API Keys</h2>
+    <div class="field">
+        <label for="openrouterApiKey">OpenRouter API key</label>
+        <input type="password" id="openrouterApiKey" data-key="openrouterApiKey" data-type="string">
+    </div>
+    <div class="field">
+        <label for="groqApiKey">Groq API key</label>
+        <input type="password" id="groqApiKey" data-key="groqApiKey" data-type="string">
+    </div>
+    <div class="field">
+        <label for="fireworksApiKey">Fireworks API key</label>
+        <input type="password" id="fireworksApiKey" data-key="fireworksApiKey" data-type="string">
+    </div>
+
+    <h2>Context</h2>
+    <div class="row">
+        <label for="useAst">Use AST for replace-region extension</label>
+        <label class="switch">
+            <input type="checkbox" id="useAst" data-key="useAst" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="row">
+        <label for="useLsp">Use LSP for scoped prefix</label>
+        <label class="switch">
+            <input type="checkbox" id="useLsp" data-key="useLsp" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="row">
+        <label for="useCrossFileContext">Use cross-file context</label>
+        <label class="switch">
+            <input type="checkbox" id="useCrossFileContext" data-key="useCrossFileContext" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <h2>Completion</h2>
+    <div class="row">
+        <label for="useDeduplication">Deduplicate completions</label>
+        <label class="switch">
+            <input type="checkbox" id="useDeduplication" data-key="useDeduplication" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <h2>Cache</h2>
+    <div class="field">
+        <label for="completionCacheMaxEntries">Completion cache max entries</label>
+        <input type="number" id="completionCacheMaxEntries" data-key="completionCacheMaxEntries" data-type="number" min="10" max="1000">
+    </div>
+    <div class="field">
+        <label for="completionCacheTtlMs">Completion cache TTL (ms)</label>
+        <input type="number" id="completionCacheTtlMs" data-key="completionCacheTtlMs" data-type="number" min="5000" max="120000">
+    </div>
+    <div class="field">
+        <label for="lspCacheMaxEntries">LSP cache max entries</label>
+        <input type="number" id="lspCacheMaxEntries" data-key="lspCacheMaxEntries" data-type="number" min="10" max="1000">
+    </div>
+
+    <h2>Advanced</h2>
+    <div class="advanced-actions">
+        <button id="reset" class="secondary">Reset to defaults</button>
+    </div>
+
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

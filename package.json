@@ -32,6 +32,25 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "textify",
+          "title": "Textify",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "textify": [
+        {
+          "type": "webview",
+          "id": "textify.dashboard",
+          "name": "Settings",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "textify.acceptCompletion",
@@ -47,6 +66,17 @@
     "configuration": {
       "title": "Textify",
       "properties": {
+        "textify.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable Textify inline completions"
+        },
+        "textify.provider": {
+          "type": "string",
+          "enum": ["auto", "openrouter", "groq", "fireworks"],
+          "default": "auto",
+          "description": "Which provider to use. 'auto' picks the first configured API key (openrouter > groq > fireworks)"
+        },
         "textify.fireworksApiKey": {
           "type": "string",
           "default": "",
@@ -73,6 +103,26 @@
           "minimum": 50,
           "maximum": 5000,
           "description": "Maximum tokens to generate"
+        },
+        "textify.useAst": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use tree-sitter AST analysis to extend the replace region to the end of the enclosing statement"
+        },
+        "textify.useLsp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use LSP document symbols to build a scoped prefix for large files"
+        },
+        "textify.useCrossFileContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Look up relevant symbols from other open/saved files"
+        },
+        "textify.useDeduplication": {
+          "type": "boolean",
+          "default": true,
+          "description": "Trim/reject completions that duplicate code already above or below the cursor"
         },
         "textify.CompletionCacheMaxEntries": {
           "type": "number",

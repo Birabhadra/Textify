@@ -4,6 +4,7 @@ import { LspService } from "../lspService";
 import { extractIdentifiers, getTruncationMarker } from "../../utils/languageUtils";
 import { findImportLineSpans, ImportBindings, parseImportBindings } from "../../utils/importAnalysis";
 import { LocalDependencyResolver } from "./localDependencyResolver";
+import { getConfig } from "../configurationService";
 export class PrefixStage {
     private readonly localDependencyResolver: LocalDependencyResolver;
     constructor(private readonly lspService: LspService) {
@@ -11,7 +12,7 @@ export class PrefixStage {
 
     }
     async buildPrefix(document: vscode.TextDocument, position: vscode.Position) {
-        if (position.line < 150) {
+        if (position.line < 150 || !getConfig().useLsp) {
             return this.getVerbatimPrefix(document, position);
         }
         const scopes = await this.getEnclosingScopes(document, position);

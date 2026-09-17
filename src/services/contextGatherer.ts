@@ -7,6 +7,7 @@ import { SuffixStage } from "./contextStages/suffixStage";
 import { CrossFileService } from "./crossFile/crossFileService";
 import { CompletionContext } from "../utils/types";
 import { ReplacementRegionStage } from "./contextStages/replacementRegionStage";
+import { getConfig } from "./configurationService";
 
 
 export class ContextGatherer implements vscode.Disposable {
@@ -29,7 +30,9 @@ export class ContextGatherer implements vscode.Disposable {
         const replacementRegion=this.replacementRegionStage.compute(document,position);
         const prefix= await this.prefixStage.buildPrefix(document, position) ?? '';
         const suffix=this.suffixStage.buildSuffixAfterRegion(document,replacementRegion.range.end) ?? '';
-        const crossFileSymbols=await this.crossFileService.getRelevantSymbols(document,prefix);
+        const crossFileSymbols=getConfig().useCrossFileContext
+            ? await this.crossFileService.getRelevantSymbols(document,prefix)
+            : [];
         const editHistory = this.intentTracker.serialize();
         
         return {

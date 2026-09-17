@@ -8,6 +8,7 @@ import { ASTService } from '../services/astService';
 import { PromptBuilder } from '../services/promptBuilder';
 import { DeduplicationService } from '../services/deduplicationService';
 import { DeletionDecoration } from '../ui/deletionDecoration';
+import { getConfig } from '../services/configurationService';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -44,6 +45,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | null> {
         try {
             this.log(`provideInlineCompletionItems called at ${position.line}:${position.character}`);
+            if (!getConfig().enabled) {
+                return null;
+            }
             //stage 1
             const pendingCompletionResult=this.handleExistingPendingCompletion(document,position);
             if(pendingCompletionResult !== undefined){
@@ -81,7 +85,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
             completion=this.cleanCompletionText(completion);
             completion=this.normalizeIndentation(completion,document);
-            const deDupResult=this.deDuplicationService.check(document,position,completion);
+            const deDupResult=getConfig().useDeduplication
+                ? this.deDuplicationService.check(document,position,completion)
+                : { proceed:true, completion };
 
             if(!deDupResult.proceed){
                 this.log(`deduplication rejected:${deDupResult.reasonText?? 'no reason provided'}`);
