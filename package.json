@@ -73,9 +73,9 @@
         },
         "textify.provider": {
           "type": "string",
-          "enum": ["auto", "openrouter", "groq", "fireworks"],
+          "enum": ["auto", "openrouter", "groq", "fireworks", "gemini"],
           "default": "auto",
-          "description": "Which provider to use. 'auto' picks the first configured API key (openrouter > groq > fireworks)"
+          "description": "Which provider to use. 'auto' picks the first configured API key (openrouter > groq > fireworks > gemini)"
         },
         "textify.fireworksApiKey": {
           "type": "string",
@@ -91,6 +91,11 @@
           "type": "string",
           "default": "",
           "description": "Groq Api Key"
+        },
+        "textify.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Gemini Api Key"
         },
         "textify.model": {
           "type": "string",

@@ -67,7 +67,7 @@ After installing, add at least one AI provider API key — see [Configure creden
 
 ## Features
 
-- AI-powered inline completions with multi-provider fallback (OpenRouter, Groq, Fireworks)
+- AI-powered inline completions with multi-provider fallback (OpenRouter, Groq, Fireworks, Gemini)
 - Replacement-style edits that can overwrite the active region instead of only appending text
 - Tree-sitter-based AST awareness for safer statement and scope boundaries
 - Cross-file context gathering using workspace symbols and import analysis
@@ -84,7 +84,7 @@ After installing, add at least one AI provider API key — see [Configure creden
 ### Prerequisites
 
 - [Visual Studio Code](https://code.visualstudio.com/) `^1.125.0`
-- At least one AI provider API key: [OpenRouter](https://openrouter.ai/), [Groq](https://groq.com/), or [Fireworks](https://fireworks.ai/)
+- At least one AI provider API key: [OpenRouter](https://openrouter.ai/), [Groq](https://groq.com/), [Fireworks](https://fireworks.ai/), or [Gemini](https://ai.google.dev/)
 
 ### 1. Install the extension
 
@@ -102,7 +102,7 @@ Open your VS Code `settings.json` (or the Settings UI, search "Textify") and add
 }
 ```
 
-Textify checks for a configured key in this priority order: OpenRouter → Groq → Fireworks.
+Textify checks for a configured key in this priority order: OpenRouter → Groq → Fireworks → Gemini.
 
 ### 3. Use it
 
@@ -190,7 +190,7 @@ sequenceDiagram
 | Category | Technologies |
 | --- | --- |
 | Core | VS Code Extension API, TypeScript |
-| AI Providers | OpenRouter, Groq, Fireworks |
+| AI Providers | OpenRouter, Groq, Fireworks, Gemini |
 | Parsing | Tree-sitter (`web-tree-sitter`) |
 | Context | Workspace symbols, imports, AST analysis |
 | Editor UX | Inline ghost text, replacement decoration |
@@ -260,6 +260,7 @@ All settings live under the `textify.*` namespace.
 | `textify.openrouterApiKey` | `""` | OpenRouter API key |
 | `textify.groqApiKey` | `""` | Groq API key |
 | `textify.fireworksApiKey` | `""` | Fireworks API key |
+| `textify.geminiApiKey` | `""` | Gemini API key |
 | `textify.model` | `"qwen/qwen3-32b"` | Active model for completions |
 | `textify.maxTokens` | `500` | Maximum generated output tokens |
 | `textify.CompletionCacheMaxEntries` | `100` | Max completion cache entries |
