@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { InlineCompletionProvider } from './providers/inlineCompletionProvider';
 import { ASTService } from './services/astService';
+import { DashboardViewProvider } from './ui/dashboardViewProvider';
+import { getConfig } from './services/configurationService';
 let provider: InlineCompletionProvider | undefined;
 let outputChannel: vscode.OutputChannel | undefined;
 let astService: ASTService | undefined;
@@ -97,7 +99,21 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 
-	context.subscriptions.push(providerDisposable, outputChannel, acceptCompletionCommand,rejectCompletionCommand);
+	const dashboardProvider = new DashboardViewProvider(context.extensionUri);
+	const dashboardDisposable = vscode.window.registerWebviewViewProvider(
+		DashboardViewProvider.viewType,
+		dashboardProvider
+	);
+
+	context.subscriptions.push(
+		providerDisposable,
+		outputChannel,
+		acceptCompletionCommand,
+		rejectCompletionCommand,
+		dashboardDisposable,
+		dashboardProvider,
+		getConfig()
+	);
 }
 
 // This method is called when your extension is deactivated

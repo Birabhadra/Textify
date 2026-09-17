@@ -1,30 +1,7 @@
 import * as vscode from "vscode";
 import { getConfig } from "../services/configurationService";
-export type ApiProvider='openrouter'|'groq'|'fireworks'
+import { ApiProvider, getProvider, PROVIDERS } from "./providers";
 import { ChatStreamChunk,ChatMessage} from "../utils/types";
-interface ProviderConfig{
-    endPoint:string;
-    getApiKey:()=>string;
-    getModel:()=>string;
-}
-
-const PROVIDER_CONFIGS: Record<ApiProvider,ProviderConfig>={
-    openrouter:{
-        endPoint:"https://openrouter.ai/api/v1/chat/completions",
-        getApiKey:()=> getConfig().openrouterApiKey,
-        getModel:()=> getConfig().model
-    },
-    groq:{
-        endPoint:"https://api.groq.com/openai/v1/chat/completions",
-        getApiKey:()=> getConfig().groqApiKey,
-        getModel:()=> getConfig().model
-    },
-    fireworks:{
-        endPoint:"https://api.fireworks.ai/inference/v1/chat/completions",
-        getApiKey:()=> getConfig().fireworksApiKey,
-        getModel:()=> getConfig().model
-    }
-};
 
 export class ApiClient implements vscode.Disposable{
     private readonly outputChannel:vscode.OutputChannel;
@@ -32,12 +9,19 @@ export class ApiClient implements vscode.Disposable{
     constructor(outputChannel:vscode.OutputChannel){
         this.outputChannel=outputChannel;
     }
-    
+
     getActiveProvider(): ApiProvider|null{
         const config=getConfig();
-        if (config.openrouterApiKey) {return 'openrouter';}
-        if (config.groqApiKey) {return 'groq';}
-        if (config.fireworksApiKey) {return 'fireworks';}
+        const selection=config.provider;
+
+        if (selection !== 'auto') {
+            const provider=getProvider(selection);
+            return provider && provider.apiKeyConfigKey && config[provider.apiKeyConfigKey] ? selection : null;
+        }
+
+        for (const provider of PROVIDERS) {
+            if (config[provider.apiKeyConfigKey]) {return provider.id;}
+        }
 
         return null;
     }
@@ -45,8 +29,8 @@ export class ApiClient implements vscode.Disposable{
     async complete(
         messages:ChatMessage[],
     ): Promise<AsyncGenerator<string,void,unknown>>{
-        const provider=this.getActiveProvider();
-        if (!provider){
+        const providerId=this.getActiveProvider();
+        if (!providerId){
             throw new Error("No API key configured");
         }
         this.cancel();
@@ -55,9 +39,9 @@ export class ApiClient implements vscode.Disposable{
         const configService=getConfig();
 
         const maxTokens=configService.maxTokens;
-        const ProviderConfig=PROVIDER_CONFIGS[provider];
+        const provider=getProvider(providerId)!;
 
-        const model=ProviderConfig.getModel();
+        const model=configService.model;
 
         const body: Record<string,unknown>={
             model,
@@ -68,15 +52,15 @@ export class ApiClient implements vscode.Disposable{
 
         };
 
-        if (provider === 'groq') {
-            body['reasoning_effort'] = 'none';
+        if (provider.extraBodyFields) {
+            Object.assign(body, provider.extraBodyFields());
         }
-        
-        this.log(`[${provider}] Request:model=${model},max_token=${maxTokens}`);
+
+        this.log(`[${providerId}] Request:model=${model},max_token=${maxTokens}`);
         return this.streamRequest(
-            ProviderConfig.endPoint,
+            provider.endPoint,
             body,
-            ProviderConfig.getApiKey(),
+            configService[provider.apiKeyConfigKey],
             this.pendingRequest.signal
         );
 
