@@ -1,5 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M4 4h16v4H4z"/>
-  <path d="M4 10h10v4H4z"/>
-  <path d="M4 16h7v4H4z"/>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-t" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5B9BD9"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- top bar -->
+  <rect x="24" y="24" width="152" height="30" rx="15" fill="url(#grad-t)"/>
+
+  <!-- stem, styled as a text cursor: thicker bar + blinking cap -->
+  <rect x="85" y="24" width="30" height="110" rx="15" fill="url(#grad-t)"/>
+  <rect x="79" y="146" width="42" height="30" rx="15" fill="url(#grad-t)"/>
 </svg>
