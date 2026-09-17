@@ -9,7 +9,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify">
     <img src="https://img.shields.io/badge/VS%20Code%20Marketplace-BirabhadraSahoo.textify-blue?logo=visualstudiocode" alt="VS Code Marketplace" />
   </a>
-  <img src="https://img.shields.io/badge/version-0.0.3-blue.svg" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.0.4-blue.svg" alt="Version" />
   <img src="https://img.shields.io/badge/vscode-%5E1.125.0-brightgreen.svg" alt="VS Code Engine" />
   <img src="https://img.shields.io/badge/license-MIT-informational.svg" alt="License" />
 </p>
