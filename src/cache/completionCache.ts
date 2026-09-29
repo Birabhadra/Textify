@@ -82,6 +82,10 @@ export class CompletionCache implements vscode.Disposable {
         );
         this.cache.set(key,completion,{ttlMs:this.TtlMs,groupKey:documentUri});
     }
+    clear():void{
+        this.cache.clear();
+    }
+
     dispose() {
         this.diposables.forEach(d=>d.dispose());
         this.cache.clear();

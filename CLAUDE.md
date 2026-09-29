@@ -38,9 +38,24 @@ read through the `ConfigurationService` singleton (`src/services/configurationSe
 registered listeners (used by `LspService` and `CompletionCache` to resize their bounded caches when
 `lspCacheMaxEntries` / `completionCacheMaxEntries` change).
 
-An API key must be set for one of three OpenAI-compatible providers — `openrouterApiKey`, `groqApiKey`, or
-`fireworksApiKey`. `ApiClient.getActiveProvider()` picks the first configured key in that priority order
-(openrouter > groq > fireworks); there is no explicit provider-selection setting.
+Providers are defined in `src/api/providers.ts` (vscode-free): builtins (openrouter, groq, fireworks, gemini —
+OpenAI-compatible — and anthropic, via `@anthropic-ai/sdk`) plus user-defined `textify.customProviders`
+(id `custom:<slug>`, `format: 'openai' | 'anthropic'`). `textify.provider` selects one explicitly; `auto` picks the
+first configured key (openrouter > groq > fireworks > gemini > anthropic > custom). Wire formats live in
+`src/api/transports.ts` (also vscode-free, so `scripts/benchmark-latency.js` and tests can use them).
+`src/test/mockProviderServer.ts` is a local SSE server for both formats used by the transport and end-to-end tests.
+The `local` format is OpenAI-compatible on the wire (keyless, with `discoverModels`).
+
+Usage metrics: transports report provider token counts via `TransportRequest.onUsage`; `ApiClient` records each
+request (outcome, duration, usage) in `UsageTracker` (`src/services/usageTracker.ts`, vscode-free, lifetime totals
+persisted in `globalState`), keyed by provider + model. Costs are computed at snapshot time by a resolver
+(`resolvePrice` in `src/utils/pricing.ts`): provider-reported cost > `textify.modelPricing` > Claude list prices >
+local ($0) > OpenRouter catalog (`PricingCatalog`, name-matched). Unknown models stay unpriced rather than guessed.
+
+User instructions (`customInstructions`, `languageInstructions`, workspace `.textify/instructions.md`) are
+resolved by `InstructionsService` and merged into the system prompt by `composeSystemPrompt` in
+`promptBuilder.ts`; the `OUTPUT_CONTRACT` part of the prompt must stay in every mode because the pipeline diffs
+raw model output against the replace region.
 
 ## Completion pipeline architecture
 

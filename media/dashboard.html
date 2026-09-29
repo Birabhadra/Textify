@@ -22,6 +22,7 @@
         <select id="provider" data-key="provider" data-type="string">
             <option value="auto">Auto (first configured key)</option>
         </select>
+        <span class="description" id="active-provider"></span>
     </div>
     <div class="field">
         <label for="model">Model</label>
@@ -32,24 +33,139 @@
         <label for="maxTokens">Max tokens</label>
         <input type="number" id="maxTokens" data-key="maxTokens" data-type="number" min="50" max="5000">
     </div>
+    <div class="field">
+        <label for="temperature">Temperature</label>
+        <input type="number" id="temperature" data-key="temperature" data-type="number" min="0" max="2" step="0.05">
+        <span class="description">Lower is more predictable. Ignored by Claude models that don't accept sampling parameters.</span>
+    </div>
 
     <h2>API Keys</h2>
     <div class="field">
-        <label for="openrouterApiKey">OpenRouter API key</label>
-        <input type="password" id="openrouterApiKey" data-key="openrouterApiKey" data-type="string">
+        <label for="key-provider">Provider</label>
+        <select id="key-provider"></select>
     </div>
     <div class="field">
-        <label for="groqApiKey">Groq API key</label>
-        <input type="password" id="groqApiKey" data-key="groqApiKey" data-type="string">
+        <label for="key-value" id="key-label">API key</label>
+        <input type="password" id="key-value" autocomplete="off" spellcheck="false" placeholder="Paste your API key">
+        <span class="description" id="key-hint"></span>
+    </div>
+    <div class="actions">
+        <button id="key-save">Save key</button>
+        <button id="key-test" class="secondary">Test connection</button>
+    </div>
+    <div class="status" id="key-status" role="status"></div>
+
+    <h2>Custom Providers</h2>
+    <div id="custom-list" class="custom-list"></div>
+    <div class="actions">
+        <button id="custom-add" class="secondary">+ Add custom provider</button>
+        <button id="local-add" class="secondary">+ Add local server</button>
+    </div>
+    <form id="custom-form" class="custom-form" hidden>
+        <input type="hidden" id="custom-id">
+        <div class="field">
+            <label for="custom-name">Name</label>
+            <input type="text" id="custom-name" placeholder="e.g. Together, Ollama, Company proxy">
+        </div>
+        <div class="field">
+            <label for="custom-format">API format</label>
+            <select id="custom-format">
+                <option value="openai">OpenAI-compatible (/chat/completions)</option>
+                <option value="anthropic">Anthropic Messages (/v1/messages)</option>
+                <option value="local">Local server (Ollama, LM Studio, llama.cpp, vLLM)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="custom-url">Base URL</label>
+            <input type="text" id="custom-url" spellcheck="false" placeholder="https://api.example.com/v1">
+            <span class="description" id="custom-url-hint"></span>
+        </div>
+        <div class="field">
+            <label for="custom-key">API key <span class="muted">(optional for local servers)</span></label>
+            <input type="password" id="custom-key" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+            <label for="custom-models">Models</label>
+            <input type="text" id="custom-models" spellcheck="false" placeholder="model-a, model-b">
+            <span class="description">Comma-separated. The first one is used by default.</span>
+            <div class="actions" id="detect-row">
+                <button type="button" id="custom-detect" class="secondary small">Detect models</button>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" id="custom-save">Save</button>
+            <button type="button" id="custom-test" class="secondary">Test</button>
+            <button type="button" id="custom-cancel" class="secondary">Cancel</button>
+        </div>
+        <div class="status" id="custom-status" role="status"></div>
+    </form>
+
+    <h2>Instructions</h2>
+    <div class="field">
+        <label for="customInstructions">Custom instructions</label>
+        <textarea id="customInstructions" data-key="customInstructions" data-type="string" rows="6"
+            placeholder="e.g. Prefer async/await over callbacks. Use early returns. Never add comments."></textarea>
+        <span class="description">Added to the system prompt for every completion. Saved when the box loses focus.</span>
+        <div class="actions">
+            <button id="upload-instructions" class="secondary small">Upload file…</button>
+        </div>
+        <div class="status" id="upload-status" role="status"></div>
     </div>
     <div class="field">
-        <label for="fireworksApiKey">Fireworks API key</label>
-        <input type="password" id="fireworksApiKey" data-key="fireworksApiKey" data-type="string">
+        <label for="systemPromptMode">Mode</label>
+        <select id="systemPromptMode" data-key="systemPromptMode" data-type="string">
+            <option value="append">Append to built-in guidance (recommended)</option>
+            <option value="replace">Replace built-in guidance</option>
+        </select>
+        <span class="description">Output-format rules are always kept so completions still apply cleanly.</span>
     </div>
     <div class="field">
-        <label for="geminiApiKey">Gemini API key</label>
-        <input type="password" id="geminiApiKey" data-key="geminiApiKey" data-type="string">
+        <span class="description" id="instructions-status"></span>
+        <div class="actions">
+            <button id="open-instructions" class="secondary">Edit workspace instructions file</button>
+        </div>
+        <span class="description">Per-language instructions: <code>textify.languageInstructions</code> in settings.json.</span>
     </div>
+
+    <h2>Latency</h2>
+    <div class="stats" id="latency-stats">No completions measured yet.</div>
+    <div class="field">
+        <label for="debounceMs">Debounce (ms)</label>
+        <input type="number" id="debounceMs" data-key="debounceMs" data-type="number" min="0" max="1000">
+        <span class="description">Delay after the last keystroke before requesting. 0 disables.</span>
+    </div>
+    <div class="actions">
+        <button id="run-benchmark" class="secondary">Run latency benchmark</button>
+    </div>
+    <div class="status" id="benchmark-status" role="status"></div>
+
+    <h2>Usage</h2>
+    <div class="segmented" role="tablist" aria-label="Usage period">
+        <button id="usage-session" class="segment active" role="tab" aria-selected="true">This session</button>
+        <button id="usage-lifetime" class="segment" role="tab" aria-selected="false">All time</button>
+    </div>
+    <div class="metrics" id="usage-metrics"></div>
+    <div id="usage-models" class="usage-models"></div>
+    <div class="row">
+        <label for="showUsageInStatusBar">Show usage in status bar</label>
+        <label class="switch">
+            <input type="checkbox" id="showUsageInStatusBar" data-key="showUsageInStatusBar" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="actions">
+        <button id="usage-report" class="secondary small">Full report</button>
+        <button id="usage-reset" class="secondary small">Reset</button>
+    </div>
+
+    <h3 class="subhead">Model prices <span class="muted">USD per 1M tokens</span></h3>
+    <span class="description">Used when a provider doesn't report cost itself. Your prices win, then Claude list prices,
+        then OpenRouter's public catalog (matched by model name). Local servers are free.</span>
+    <div id="pricing-rows" class="pricing-rows"></div>
+    <div class="actions">
+        <button id="pricing-refresh" class="secondary small">Refresh price catalog</button>
+    </div>
+    <div class="status" id="pricing-status" role="status"></div>
 
     <h2>Context</h2>
     <div class="row">
@@ -98,6 +214,13 @@
     </div>
 
     <h2>Advanced</h2>
+    <div class="row">
+        <label for="debugLogging">Log full prompts (debug)</label>
+        <label class="switch">
+            <input type="checkbox" id="debugLogging" data-key="debugLogging" data-type="boolean">
+            <span class="slider"></span>
+        </label>
+    </div>
     <div class="advanced-actions">
         <button id="reset" class="secondary">Reset to defaults</button>
     </div>

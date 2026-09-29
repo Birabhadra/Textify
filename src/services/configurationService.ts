@@ -1,5 +1,8 @@
 import * as vscode from "vscode";
-import { ProviderSelection } from "../api/providers";
+import { CustomProviderConfig, ProviderSelection } from "../api/providers";
+import { SystemPromptMode } from "./promptBuilder";
+import { ModelPrice } from "../utils/pricing";
+
 export interface TabCompletionConfig{
     //general
     enabled:boolean;
@@ -8,15 +11,29 @@ export interface TabCompletionConfig{
     openrouterApiKey:string;
     groqApiKey:string;
     geminiApiKey:string;
+    anthropicApiKey:string;
+    customProviders:CustomProviderConfig[];
     //models
     provider:ProviderSelection;
     model:string;
     maxTokens:number;
+    temperature:number;
+    //instructions
+    customInstructions:string;
+    languageInstructions:Record<string,string>;
+    systemPromptMode:SystemPromptMode;
+    //latency
+    debounceMs:number;
     //feature toggles
     useAst:boolean;
     useLsp:boolean;
     useCrossFileContext:boolean;
     useDeduplication:boolean;
+    debugLogging:boolean;
+    //usage
+    showUsageInStatusBar:boolean;
+    modelPricing:Record<string,ModelPrice>;
+    fetchPricingCatalog:boolean;
     //cache settings
     completionCacheMaxEntries:number;
     completionCacheTtlMs:number;
@@ -30,13 +47,24 @@ const DEFAULTS:TabCompletionConfig={
     openrouterApiKey:'',
     groqApiKey:'',
     geminiApiKey:'',
+    anthropicApiKey:'',
+    customProviders:[],
     provider:'auto',
     model:'qwen/qwen3-32b',
     maxTokens:500,
+    temperature:0.1,
+    customInstructions:'',
+    languageInstructions:{},
+    systemPromptMode:'append',
+    debounceMs:50,
     useAst:true,
     useLsp:true,
     useCrossFileContext:true,
     useDeduplication:true,
+    debugLogging:false,
+    showUsageInStatusBar:true,
+    modelPricing:{},
+    fetchPricingCatalog:true,
     completionCacheMaxEntries:100,
     lspCacheMaxEntries:100,
     completionCacheTtlMs:30000
@@ -76,23 +104,24 @@ export class ConfigurationService implements vscode.Disposable{
 
     private loadConfig(): TabCompletionConfig{
         const config=vscode.workspace.getConfiguration('textify');
-        return {
-            enabled:config.get<boolean>('enabled',DEFAULTS.enabled),
-            fireworksApiKey:config.get<string>('fireworksApiKey',DEFAULTS.fireworksApiKey),
-            openrouterApiKey:config.get<string>('openrouterApiKey',DEFAULTS.openrouterApiKey),
-            groqApiKey:config.get<string>('groqApiKey',DEFAULTS.groqApiKey),
-            geminiApiKey:config.get<string>('geminiApiKey',DEFAULTS.geminiApiKey),
-            provider:config.get<ProviderSelection>('provider',DEFAULTS.provider),
-            model:config.get<string>('model',DEFAULTS.model),
-            maxTokens:config.get<number>('maxTokens',DEFAULTS.maxTokens),
-            useAst:config.get<boolean>('useAst',DEFAULTS.useAst),
-            useLsp:config.get<boolean>('useLsp',DEFAULTS.useLsp),
-            useCrossFileContext:config.get<boolean>('useCrossFileContext',DEFAULTS.useCrossFileContext),
-            useDeduplication:config.get<boolean>('useDeduplication',DEFAULTS.useDeduplication),
-            completionCacheMaxEntries:config.get<number>('completionCacheMaxEntries',DEFAULTS.completionCacheMaxEntries),
-            lspCacheMaxEntries:config.get<number>('lspCacheMaxEntries',DEFAULTS.lspCacheMaxEntries),
-            completionCacheTtlMs:config.get<number>('completionCacheTtlMs',DEFAULTS.completionCacheTtlMs)
-        };
+        const loaded={} as Record<keyof TabCompletionConfig,unknown>;
+        for (const key of Object.keys(DEFAULTS) as (keyof TabCompletionConfig)[]){
+            loaded[key]=config.get(key,DEFAULTS[key]);
+        }
+        const result=loaded as TabCompletionConfig;
+        if(!Array.isArray(result.customProviders)){
+            result.customProviders=[];
+        }
+        if(typeof result.languageInstructions!=='object' || result.languageInstructions===null){
+            result.languageInstructions={};
+        }
+        if(typeof result.modelPricing!=='object' || result.modelPricing===null){
+            result.modelPricing={};
+        }
+        if(result.systemPromptMode!=='replace'){
+            result.systemPromptMode='append';
+        }
+        return result;
     }
 
     private notifyListeners():void{
@@ -109,17 +138,33 @@ export class ConfigurationService implements vscode.Disposable{
     get provider():ProviderSelection {return this.cachedConfig.provider;}
     get model():string {return this.cachedConfig.model;}
     get maxTokens():number {return this.cachedConfig.maxTokens;}
+    get temperature():number {return this.cachedConfig.temperature;}
     get groqApiKey():string {return this.cachedConfig.groqApiKey;}
     get openrouterApiKey():string {return this.cachedConfig.openrouterApiKey;}
     get fireworksApiKey():string {return this.cachedConfig.fireworksApiKey;}
     get geminiApiKey():string {return this.cachedConfig.geminiApiKey;}
+    get anthropicApiKey():string {return this.cachedConfig.anthropicApiKey;}
+    get customProviders():CustomProviderConfig[] {return this.cachedConfig.customProviders;}
+    get customInstructions():string {return this.cachedConfig.customInstructions;}
+    get languageInstructions():Record<string,string> {return this.cachedConfig.languageInstructions;}
+    get systemPromptMode():SystemPromptMode {return this.cachedConfig.systemPromptMode;}
+    get debounceMs():number {return this.cachedConfig.debounceMs;}
     get useAst():boolean {return this.cachedConfig.useAst;}
     get useLsp():boolean {return this.cachedConfig.useLsp;}
     get useCrossFileContext():boolean {return this.cachedConfig.useCrossFileContext;}
     get useDeduplication():boolean {return this.cachedConfig.useDeduplication;}
+    get debugLogging():boolean {return this.cachedConfig.debugLogging;}
+    get showUsageInStatusBar():boolean {return this.cachedConfig.showUsageInStatusBar;}
+    get modelPricing():Record<string,ModelPrice> {return this.cachedConfig.modelPricing;}
+    get fetchPricingCatalog():boolean {return this.cachedConfig.fetchPricingCatalog;}
     get completionCacheMaxEntries():number {return this.cachedConfig.completionCacheMaxEntries;}
     get completionCacheTtlMs():number {return this.cachedConfig.completionCacheTtlMs;}
     get lspCacheMaxEntries():number {return this.cachedConfig.lspCacheMaxEntries;}
+
+    /** A copy of the full current configuration. */
+    snapshot():TabCompletionConfig{
+        return {...this.cachedConfig};
+    }
 
     onConfigChange(callback:(config:TabCompletionConfig)=>void):vscode.Disposable{
         this.changeListeners.add(callback);
