@@ -6,16 +6,34 @@ stable completion pipeline; model routing depends on the provider abstraction; L
 
 See [CLAUDE.md](CLAUDE.md) for how the current codebase is structured.
 
+**Legend:** ✅ done · 🟡 partly done (what exists is noted) · no mark = not started.
+
+## Progress snapshot (v0.0.5)
+
+v0.0.5 worked ahead on parts of Phases 2, 3 and 10 because they were needed for Claude/custom/local providers,
+custom instructions, and usage metrics. **Phase 0 is still open and still gates the larger phases** (RAG, routing,
+etc.). Only what's needed to keep those new features working is outside Phase 0.
+
+| Area | Status | What shipped |
+| --- | --- | --- |
+| Provider abstraction (Phase 2) | ✅ | `providers.ts` + `transports.ts`: OpenRouter, Groq, Fireworks, Gemini, Claude (Anthropic SDK), custom OpenAI/Anthropic-compatible, local servers |
+| Settings panel (Phase 3) | 🟡 | API-key dropdown, provider/model, custom providers, instructions, latency, usage, model prices; no RAG/privacy settings yet |
+| Custom instructions *(new)* | ✅ | Global, per-language, workspace `.textify/instructions.md`, file upload, append/replace |
+| Latency (Phases 10, 12) | 🟡 | Debounce, connection pre-warming, pooled connections, per-stage timings, p50/p90, benchmark command + script |
+| Usage & cost (Phases 10, 11) | 🟡 | `/cost`-style metrics: tokens incl. cache, cost for every provider, API/wall time, acceptance rate, lines changed |
+| Local models (Phase 15) | 🟡 | Local server format with model detection; no privacy routing or local fallback |
+| Tests (Phase 0) | 🟡 | 28 → 100 tests, including end-to-end completions against a local mock provider |
+
 ## Phase 0 — Clean and stabilize current code
 
 Do these first. Do not add new features until this is stable.
 
-- Fix existing bugs/typos.
+- 🟡 Fix existing bugs/typos. *(fixed: `completionCacheMaxEntries` setting casing, provider not disposed on deactivate)*
 - Fix indentation handling.
 - Fix completion acceptance/rejection flow.
 - Fix pending completion behavior.
-- Fix cache invalidation edge cases.
-- Improve existing tests.
+- 🟡 Fix cache invalidation edge cases. *(cache key now includes instructions, provider and model; changing instructions clears the cache)*
+- 🟡 Improve existing tests. *(provider, prompt, transport, usage and end-to-end pipeline tests; acceptance/pending flows still need coverage)*
 - Make sure current tutorial pipeline works reliably end-to-end.
 
 ## Phase 1 — Finish the core autocomplete engine
@@ -27,7 +45,7 @@ Do these first. Do not add new features until this is stable.
 - Finish suffix/prefix handling.
 - Improve minimal-diff generation.
 - Improve duplicate detection.
-- Improve streaming/cancellation.
+- 🟡 Improve streaming/cancellation. *(cancellation aborts the request promptly; finished streams are drained so connections are reused)*
 - Improve prediction continuation.
 
 At the end, this is the stable V1 pipeline:
@@ -54,34 +72,36 @@ Ghost text
 
 ## Phase 2 — Model/provider system
 
-Create a proper `ModelProvider` abstraction:
+✅ Create a proper `ModelProvider` abstraction — `src/api/providers.ts` (registry) + `src/api/transports.ts` (wire formats):
 
 ```
 ModelProvider
- ├── OpenRouter
- ├── Groq
- ├── Fireworks
- ├── OpenAI
- └── Other providers
+ ├── OpenRouter            (OpenAI-compatible)
+ ├── Groq                  (OpenAI-compatible)
+ ├── Fireworks             (OpenAI-compatible)
+ ├── Gemini                (OpenAI-compatible)
+ ├── Claude                (Anthropic SDK)
+ ├── Custom providers      (OpenAI- or Anthropic-compatible, e.g. OpenAI, Together, DeepSeek, proxies)
+ └── Local servers         (Ollama, LM Studio, llama.cpp, vLLM)
 ```
 
-- Allow users to configure API keys/providers.
-- Add model selection.
-- Add model dropdown.
-- Add provider dropdown.
-- Add "Auto" model selection.
-- Store provider/model configuration cleanly.
+- ✅ Allow users to configure API keys/providers. *(API-key dropdown for every provider; custom providers with URL normalization; Test connection)*
+- ✅ Add model selection.
+- ✅ Add model dropdown. *(suggested models per provider; switching provider switches to a compatible model)*
+- ✅ Add provider dropdown.
+- 🟡 Add "Auto" model selection. *(`auto` picks the first provider with a key; no quality/latency-based choice yet)*
+- ✅ Store provider/model configuration cleanly.
 
 Only after this should you do:
 
 - OpenRouter model discovery.
-- Fetch available models dynamically.
-- Display available models in the UI.
+- 🟡 Fetch available models dynamically. *(local servers only: `/v1/models`, falling back to Ollama `/api/tags`)*
+- 🟡 Display available models in the UI. *(local servers only)*
 - Display model capabilities where useful.
-- Handle unavailable/failed models.
+- 🟡 Handle unavailable/failed models. *(errors are surfaced and counted as failed requests; no automatic switch)*
 - Handle rate-limit responses.
 - Handle exhausted quota/credits where the provider exposes that information.
-- Implement automatic fallback to another configured model.
+- 🟡 Implement automatic fallback to another configured model. *(Claude Opus 5 uses Anthropic's server-side refusal fallback; nothing cross-provider yet)*
 
 Target:
 
@@ -103,19 +123,26 @@ Target:
 
 ## Phase 3 — Settings/customization UI
 
-- Add Textify Activity Bar/sidebar.
-- Create Textify settings page.
-- Add master Enable/Disable Textify toggle.
-- Add small bottom/status-bar Textify toggle.
-- Add model dropdown.
-- Add provider selection.
-- Add completion settings.
-- Add context settings.
-- Add cache settings.
+- ✅ Add Textify Activity Bar/sidebar.
+- ✅ Create Textify settings page.
+- ✅ Add master Enable/Disable Textify toggle.
+- 🟡 Add small bottom/status-bar Textify toggle. *(status bar item shows session tokens/cost and opens the usage report; no on/off toggle yet)*
+- ✅ Add model dropdown.
+- ✅ Add provider selection.
+- ✅ Add completion settings. *(max tokens, temperature, debounce)*
+- ✅ Add context settings.
+- ✅ Add cache settings.
 - Add RAG settings.
 - Add privacy settings.
-- Add advanced settings.
-- Add reset-to-default settings.
+- ✅ Add advanced settings. *(debug prompt logging)*
+- ✅ Add reset-to-default settings. *(with confirmation, since it also clears keys and custom providers)*
+
+Added beyond the original plan:
+
+- ✅ Custom instructions: global, per-language, workspace `.textify/instructions.md`, file upload, append/replace mode.
+- ✅ Custom provider and local server management (add / edit / remove / detect models / test).
+- ✅ Latency section (rolling p50/p90, benchmark) and Usage section (session / all time, per-model breakdown).
+- ✅ Model price editor (per provider or per model, with the price source shown).
 
 Suggested UI:
 
@@ -134,6 +161,10 @@ Textify
 │   ├── Provider
 │   ├── Model
 │   └── Auto routing
+│
+├── Instructions          (added in v0.0.5)
+│
+├── Latency / Usage       (added in v0.0.5)
 │
 ├── Context
 │   ├── AST
@@ -233,8 +264,8 @@ Textify already has LRU/LFU-style completion caching (`BoundedCache`) — extend
 - Semantic cache.
 - Cache invalidation based on file changes.
 - Cache invalidation based on repository changes.
-- Measure cache hit rate.
-- Measure inference requests avoided.
+- 🟡 Measure cache hit rate. *(suggestions served from cache are counted in usage metrics)*
+- 🟡 Measure inference requests avoided. *(same counter; not yet broken down by cache layer)*
 - Measure latency reduction.
 - Measure cost reduction.
 
@@ -293,7 +324,7 @@ Now build specifically around OpenRouter.
 - Show supported capabilities where available.
 - Track model failures.
 - Track rate limits.
-- Track usage/quota information where available through the provider.
+- 🟡 Track usage/quota information where available through the provider. *(OpenRouter-reported cost is used; its public price catalog prices other providers; no quota tracking)*
 - Automatically fallback when a model becomes unavailable.
 - Automatically switch models after rate limits/exhaustion where the API exposes sufficient information.
 - Add model health state.
@@ -324,8 +355,8 @@ Do this once the API/provider architecture is settled.
 - Add concurrency limits.
 - Add request queues where necessary.
 - Add backpressure.
-- Add timeout handling.
-- Add retry policies.
+- ✅ Add timeout handling. *(30s request timeout for Claude, timeouts on benchmarks, pre-warm and model detection)*
+- 🟡 Add retry policies. *(completions deliberately don't retry, since a late completion is useless; one retry without `stream_options` for strict servers)*
 - Add exponential backoff.
 - Add circuit breaker for failing providers.
 
@@ -350,17 +381,18 @@ Provider
 - Add structured logging.
 - Add request IDs.
 - Add request tracing.
-- Measure context retrieval time.
+- ✅ Measure context retrieval time.
 - Measure RAG latency.
 - Measure cache latency.
-- Measure model latency.
-- Measure streaming latency.
-- Measure p50/p95/p99.
+- ✅ Measure model latency. *(time to first token and total request time)*
+- ✅ Measure streaming latency.
+- 🟡 Measure p50/p95/p99. *(p50/p90 over the last 50 completions)*
 - Add Prometheus metrics.
 - Add Grafana dashboard.
-- Add model performance dashboard.
+- 🟡 Add model performance dashboard. *(in-panel latency and per-model usage/cost; no external dashboard)*
+- ✅ Track token usage and cost per provider/model *(added in v0.0.5: session + all-time, `/cost`-style report)*
 
-Target visibility, e.g.:
+Target visibility, e.g. (v0.0.5 already logs `debounce / context / prompt / ttft / request / total` per completion):
 
 ```
 Request #12491
@@ -385,15 +417,15 @@ This is mandatory for the final project.
 - Measure exact match.
 - Measure Pass@1.
 - Measure syntax validity.
-- Measure acceptance rate.
+- ✅ Measure acceptance rate. *(usage metrics: accepted / shown)*
 - Measure retrieval Recall@K.
 - Measure MRR.
 - Measure context relevance.
 - Measure p50/p95/p99.
 - Measure throughput.
 - Measure cache hit rate.
-- Measure tokens/request.
-- Measure cost/request.
+- 🟡 Measure tokens/request. *(provider-reported tokens per model, incl. cache read/write; not per request yet)*
+- 🟡 Measure cost/request. *(cost per model and total for every provider)*
 
 Then run ablation experiments in this order to get real evidence of what each layer contributes:
 
@@ -421,7 +453,7 @@ Baseline
 - Test 1,000.
 - Test higher concurrency as infrastructure permits.
 - Find bottlenecks.
-- Optimize connection pooling.
+- ✅ Optimize connection pooling. *(keep-alive reuse, pre-warming after idle, debounce to avoid aborted requests)*
 - Optimize batching where applicable.
 - Optimize caching.
 - Optimize queues.
@@ -500,7 +532,7 @@ project.
 
 ## Phase 15 — Local / Hybrid inference
 
-- Add local model support.
+- ✅ Add local model support. *(Ollama, LM Studio, llama.cpp, vLLM; keyless; model detection; priced at $0)*
 - Add local/cloud/hybrid modes.
 - Add privacy policies.
 - Detect sensitive files/secrets.
@@ -520,8 +552,8 @@ project.
 
 ## Phase 16 — Personalization
 
-- Track accepted completions.
-- Track rejected completions.
+- ✅ Track accepted completions. *(IntentTracker + usage metrics, incl. lines added/removed)*
+- ✅ Track rejected completions.
 - Learn preferred completion length.
 - Learn language preferences.
 - Learn repository-specific patterns.
@@ -532,14 +564,14 @@ project.
 
 - Improve onboarding.
 - Add first-run configuration.
-- Add API-key management.
+- ✅ Add API-key management.
 - Add repository indexing status.
-- Add model status.
-- Add cache statistics.
-- Add performance dashboard.
-- Add debugging mode.
+- 🟡 Add model status. *(active provider/model shown in the panel; Test connection)*
+- 🟡 Add cache statistics. *(cache-served suggestions counted)*
+- 🟡 Add performance dashboard. *(Latency + Usage sections in the panel)*
+- ✅ Add debugging mode. *(`textify.debugLogging`)*
 - Add error explanations.
-- Add documentation.
+- 🟡 Add documentation. *(README, CHANGELOG, CLAUDE.md updated for v0.0.5)*
 - Add architecture documentation.
 - Add benchmark results.
 - Add demo video.
@@ -550,15 +582,15 @@ project.
 Short version, follow this exact sequence:
 
 ```
-1. Fix/stabilize current Textify
+1. Fix/stabilize current Textify       🟡 still the gate for 6+
         ↓
 2. Finish tutorial implementation
         ↓
-3. Provider/model abstraction
+3. Provider/model abstraction          ✅ v0.0.5
         ↓
-4. Model selection dropdown
+4. Model selection dropdown            ✅ v0.0.5
         ↓
-5. Textify settings/sidebar
+5. Textify settings/sidebar            🟡 v0.0.5
         ↓
 6. JumpTab + imports
         ↓
@@ -578,7 +610,7 @@ Short version, follow this exact sequence:
         ↓
 14. Rate limiting/retries/backpressure
         ↓
-15. Observability
+15. Observability                     🟡 v0.0.5 (latency + usage/cost)
         ↓
 16. Evaluation framework
         ↓
@@ -588,7 +620,7 @@ Short version, follow this exact sequence:
         ↓
 19. Speculative completion
         ↓
-20. Local/hybrid inference
+20. Local/hybrid inference            🟡 v0.0.5 (local servers)
         ↓
 21. Personalization
         ↓
