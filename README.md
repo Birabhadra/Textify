@@ -9,7 +9,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=BirabhadraSahoo.textify">
     <img src="https://img.shields.io/badge/VS%20Code%20Marketplace-BirabhadraSahoo.textify-blue?logo=visualstudiocode" alt="VS Code Marketplace" />
   </a>
-  <img src="https://img.shields.io/badge/version-0.0.4-blue.svg" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.0.5-blue.svg" alt="Version" />
   <img src="https://img.shields.io/badge/vscode-%5E1.125.0-brightgreen.svg" alt="VS Code Engine" />
   <img src="https://img.shields.io/badge/license-MIT-informational.svg" alt="License" />
 </p>
@@ -26,6 +26,7 @@
   <a href="#architecture">Architecture</a> •
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#project-structure">Structure</a> •
+  <a href="#commands">Commands</a> •
   <a href="#settings">Settings</a> •
   <a href="#resources">Resources</a>
 </p>
@@ -47,6 +48,10 @@ Built for fast iteration in real-world coding sessions, it helps with:
 - Multi-file, cross-symbol context awareness
 - Smarter accept/reject behavior in your normal editor flow
 
+You choose the model — a cloud provider (OpenRouter, Groq, Fireworks, Gemini, Claude), any OpenAI- or
+Anthropic-compatible endpoint, or a model running locally — and you can tell it how to write code with your own
+instructions. Textify shows what that costs and how fast it is, per session and over time.
+
 ---
 
 ## Install
@@ -61,21 +66,44 @@ code --install-extension BirabhadraSahoo.textify
 
 **From the editor:** open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`), search for **Textify**, and click Install.
 
-After installing, add at least one AI provider API key — see [Configure credentials](#3-configure-credentials).
+After installing, add at least one AI provider API key (or a local server) — see [Configure credentials](#2-configure-credentials).
 
 ---
 
 ## Features
 
-- AI-powered inline completions with multi-provider fallback (OpenRouter, Groq, Fireworks, Gemini)
+**Completions**
+
 - Replacement-style edits that can overwrite the active region instead of only appending text
+- Deletion decorations for code that will be replaced by the generated edit
 - Tree-sitter-based AST awareness for safer statement and scope boundaries
 - Cross-file context gathering using workspace symbols and import analysis
-- Completion caching to reduce repeated API load for similar contexts
 - Deduplication and diff validation before displaying suggestions
-- Deletion decorations for code that will be replaced by the generated edit
-- Support for multiple languages including TypeScript, JavaScript, Python, Rust, Go, Java, C, and C++
+- Completion caching to reduce repeated API load for similar contexts
 - Token-aware prompt construction to stay inside model limits
+- Support for multiple languages including TypeScript, JavaScript, Python, Rust, Go, Java, C, and C++
+
+**Models and providers**
+
+- Built-in providers: OpenRouter, Groq, Fireworks, Gemini, and Claude (via the official Anthropic SDK)
+- Custom providers: any OpenAI-compatible or Anthropic-compatible endpoint (Together, DeepSeek, company proxies, …)
+- Local model servers (Ollama, LM Studio, llama.cpp, vLLM) — no API key, with automatic model detection
+- API keys, provider and model managed from the Textify panel, with a one-click **Test connection**
+
+**Custom instructions**
+
+- Tell the model how to write code: global, per-language, and per-workspace (`.textify/instructions.md`) instructions
+- Upload an existing conventions file into the instructions box
+- Append to or replace the built-in guidance (output-format rules are always kept)
+
+**Speed and usage**
+
+- Lower latency: typing debounce, connection pre-warming, and pooled connections
+- Per-stage timings, rolling p50/p90, and a built-in latency benchmark
+- Usage metrics like Claude Code's `/cost`: tokens (input / output / cache read / cache write), cost, API time,
+  acceptance rate, and lines changed — per session and all time, in the status bar and the panel
+- Cost for every provider: provider-reported cost, your own prices, Claude list prices, free local models, and
+  OpenRouter's public price catalog
 
 ---
 
@@ -84,7 +112,7 @@ After installing, add at least one AI provider API key — see [Configure creden
 ### Prerequisites
 
 - [Visual Studio Code](https://code.visualstudio.com/) `^1.125.0`
-- At least one AI provider API key: [OpenRouter](https://openrouter.ai/), [Groq](https://groq.com/), [Fireworks](https://fireworks.ai/), or [Gemini](https://ai.google.dev/)
+- At least one AI provider API key: [OpenRouter](https://openrouter.ai/), [Groq](https://groq.com/), [Fireworks](https://fireworks.ai/), [Gemini](https://ai.google.dev/), or [Claude](https://platform.claude.com/) — or a custom/local endpoint
 
 ### 1. Install the extension
 
@@ -92,17 +120,23 @@ See [Install](#install) above.
 
 ### 2. Configure credentials
 
-Open your VS Code `settings.json` (or the Settings UI, search "Textify") and add one provider key:
+The easiest way is the **Textify** panel in the activity bar: pick a provider in the **API Keys** dropdown,
+paste the key, and click **Test connection**. No key? Click **+ Add local server** to use a model running on
+your machine (see [step 5](#5-add-a-custom-provider-optional)).
+
+You can also set a key in `settings.json` (or the Settings UI, search "Textify"):
 
 ```json
 {
-  "textify.openrouterApiKey": "YOUR_OPENROUTER_KEY",
-  "textify.model": "qwen/qwen3-32b",
+  "textify.anthropicApiKey": "YOUR_ANTHROPIC_KEY",
+  "textify.provider": "anthropic",
+  "textify.model": "claude-haiku-4-5",
   "textify.maxTokens": 500
 }
 ```
 
-Textify checks for a configured key in this priority order: OpenRouter → Groq → Fireworks → Gemini.
+With `textify.provider` set to `auto`, Textify uses the first configured key in this order:
+OpenRouter → Groq → Fireworks → Gemini → Claude → custom providers.
 
 ### 3. Use it
 
@@ -110,12 +144,84 @@ Textify checks for a configured key in this priority order: OpenRouter → Groq 
 - Suggestions appear as inline ghost text, with any replaced code shown struck through.
 - Press `Tab` to accept, `Escape` to reject.
 
+### 4. Tell the model how to write completions (optional)
+
+Instructions are added to the system prompt, from lowest to highest precedence:
+
+1. `textify.customInstructions` — global (the **Instructions** box in the Textify panel)
+   — or click **Upload file…** to load a `.md` / `.txt` file into it (append or replace)
+2. `textify.languageInstructions` — per language id, e.g. `{ "python": "Use type hints." }`
+3. `.textify/instructions.md` in the workspace — commit it to share conventions with your team
+   (run **Textify: Edit Workspace Instructions**; HTML comments in the file are ignored)
+
+`textify.systemPromptMode` is `append` (default: add to the built-in guidance) or `replace` (use only your
+instructions). In both modes the output-format rules are kept, because the extension diffs the raw model
+output against your code.
+
+### 5. Add a custom provider (optional)
+
+In the Textify panel choose **+ Add custom provider**, then enter a name, API format (OpenAI-compatible or
+Anthropic Messages), base URL, optional key, and model names. URLs are normalized — `https://host/v1` becomes
+`…/v1/chat/completions` for OpenAI format, and `…/v1/messages` is handled by the SDK for Anthropic format.
+Keys are optional so local servers like `http://localhost:11434/v1` (Ollama) work.
+
+For a model running on your machine, click **+ Add local server**: it fills in the Ollama URL and detects the
+installed models (via `/v1/models`, falling back to Ollama's `/api/tags`). LM Studio (`:1234/v1`), llama.cpp
+(`:8080/v1`) and vLLM work the same way — change the URL and click **Detect models**.
+
+### Usage metrics
+
+The status bar shows this session's tokens and cost; hover for a breakdown, click for the full report
+(**Textify: Show Usage**), which follows Claude Code's `/cost` layout:
+
+```text
+Total cost:            $0.0171
+Total duration (API):  3.5s
+Total duration (wall): 1m 30.0s
+Total code changes:    14 lines added, 3 lines removed
+Requests:              12 (10 completed, 2 cancelled, 0 failed)
+Suggestions:           8 shown (2 from cache), 6 accepted, 1 rejected · 75% acceptance
+Usage by model:
+    claude-haiku-4-5:  12k input, 900 output, 4k cache read, 1k cache write ($0.0171)
+```
+
+Token counts are the ones each provider reports in its stream. Cost works for every provider; for each
+provider + model, the first available source wins:
+
+1. **Reported by the provider** on the response (OpenRouter)
+2. **Your price** — set it in the panel's **Model prices** list (stored in `textify.modelPricing`, per provider or per model)
+3. **List price** — Claude models
+4. **Local** — local model servers are $0
+5. **≈ Catalog** — OpenRouter's public price list, matched by model name (handles Groq's `-versatile`/`-instant`
+   and Fireworks' `v3p3` spellings). Refreshed daily; turn off with `textify.fetchPricingCatalog`.
+
+Anything still unknown is shown as *unpriced*, never as free. Costs are computed when displayed, so setting a
+price later also prices earlier usage. Usage is tracked per provider, so the same model on two providers can have
+different prices. The **Usage** section of the panel shows the same data for this session or all time, and
+**Textify: Reset Usage Metrics** clears it. Cancelled requests are counted, but providers don't report tokens
+for them.
+
+### Measuring latency
+
+- Every completion logs `debounce / context / prompt / ttft / request / total` timings to the **Textify** output channel,
+  and the panel's **Latency** section shows rolling p50/p90.
+- **Textify: Measure Completion Latency** (or **Run latency benchmark** in the panel) sends 5 small requests and reports
+  cold vs. warm time-to-first-token.
+- From a terminal: `npm run compile && node scripts/benchmark-latency.js --provider anthropic --model claude-haiku-4-5`
+  (key from `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, …), or `--mock` for a local run without a key.
+
+Model choice dominates latency: small models (e.g. `claude-haiku-4-5`, `llama-3.1-8b-instant`) respond fastest.
+
 ---
 
 ## Architecture
 
-Textify collects editor context, assembles a structured prompt, and then validates the generated edit before
-presenting it as inline ghost text.
+Textify collects editor context, assembles a structured prompt (with your instructions in the system prompt),
+streams it to the selected provider, and then validates the generated edit before presenting it as inline ghost
+text. Every request's timing, tokens, and cost are recorded along the way.
+
+The images below show the core completion pipeline; the Mermaid source further down also shows the provider
+transports, instructions, and usage tracking.
 
 <p align="center">
   <img
@@ -148,17 +254,25 @@ presenting it as inline ghost text.
 
 ```mermaid
 flowchart LR
-    A[VS Code Editor] --> B[Context Gatherer]
+    A[VS Code Editor] -->|debounce| B[Context Gatherer]
     B --> C[Prefix / Suffix / Replacement Region]
     B --> D[AST Analysis]
     B --> E[Cross-file Symbol Index]
     C --> F[Prompt Builder]
     D --> F
     E --> F
-    F --> G[LLM Provider]
-    G --> H[Deduplication + Diff Validation]
+    N[Instructions<br/>settings · language · .textify/instructions.md] --> F
+    F --> G[API Client]
+    G --> G1[OpenAI-compatible<br/>OpenRouter · Groq · Fireworks · Gemini · custom · local]
+    G --> G2[Anthropic SDK<br/>Claude · Anthropic-compatible]
+    G1 --> H[Deduplication + Diff Validation]
+    G2 --> H
     H --> I[Ghost Text + Replacement Edit]
     I --> J[Tab Accept / Escape Reject]
+    G -. timing, tokens .-> U[Usage + Latency Tracking]
+    J -. accepted / rejected .-> U
+    P[Pricing<br/>reported · yours · list · local · catalog] -.-> U
+    U --> S[Status bar · Panel · /cost-style report]
 ```
 
 ```mermaid
@@ -171,14 +285,17 @@ sequenceDiagram
     participant D as Dedup / Diff
 
     User->>VS: Types in editor
+    T-->>L: Pre-warm connection (after a pause)
     VS->>T: Trigger completion request
-    T->>C: Gather prefix, suffix, AST, symbols, history
+    T->>T: Debounce, check cache
+    T->>C: Gather prefix, suffix, AST, symbols, history, instructions
     C-->>T: Context bundle
-    T->>L: Send structured prompt
-    L-->>T: Completion payload
+    T->>L: Stream structured prompt
+    L-->>T: Completion tokens + usage
     T->>D: Validate uniqueness and edit diff
     D-->>VS: Ghost text suggestion
     User->>VS: Accept or reject suggestion
+    T->>T: Record latency, tokens, cost, acceptance
 ```
 
 </details>
@@ -190,11 +307,12 @@ sequenceDiagram
 | Category | Technologies |
 | --- | --- |
 | Core | VS Code Extension API, TypeScript |
-| AI Providers | OpenRouter, Groq, Fireworks, Gemini |
+| AI Providers | OpenRouter, Groq, Fireworks, Gemini, Claude (`@anthropic-ai/sdk`), custom OpenAI/Anthropic-compatible endpoints, local servers (Ollama, LM Studio, llama.cpp, vLLM) |
 | Parsing | Tree-sitter (`web-tree-sitter`) |
-| Context | Workspace symbols, imports, AST analysis |
-| Editor UX | Inline ghost text, replacement decoration |
-| Build/Test | TypeScript, ESLint, VS Code test runner (`vscode-test`) |
+| Context | Workspace symbols, imports, AST analysis, custom instructions |
+| Editor UX | Inline ghost text, replacement decoration, webview settings panel, status bar usage |
+| Observability | Per-stage latency, provider-reported token usage, multi-source pricing |
+| Build/Test | TypeScript, ESLint, VS Code test runner (`vscode-test`), local mock provider server |
 
 ---
 
@@ -205,7 +323,9 @@ textify/
 ├── src/
 │   ├── extension.ts
 │   ├── api/
-│   │   └── apiClient.ts
+│   │   ├── apiClient.ts
+│   │   ├── providers.ts
+│   │   └── transports.ts
 │   ├── providers/
 │   │   └── inlineCompletionProvider.ts
 │   ├── services/
@@ -217,6 +337,10 @@ textify/
 │   │   ├── intentTracker.ts
 │   │   ├── lspService.ts
 │   │   ├── promptBuilder.ts
+│   │   ├── instructionsService.ts
+│   │   ├── latencyBenchmark.ts
+│   │   ├── usageTracker.ts
+│   │   ├── pricingCatalog.ts
 │   │   ├── contextStages/
 │   │   │   ├── localDependencyResolver.ts
 │   │   │   ├── prefixStage.ts
@@ -231,29 +355,62 @@ textify/
 │   │   ├── boundedCache.ts
 │   │   └── completionCache.ts
 │   ├── ui/
-│   │   └── deletionDecoration.ts
+│   │   ├── dashboardViewProvider.ts
+│   │   ├── deletionDecoration.ts
+│   │   └── usageStatusBar.ts
 │   ├── utils/
 │   │   ├── importAnalysis.ts
 │   │   ├── languageUtils.ts
+│   │   ├── latencyTracker.ts
+│   │   ├── pricing.ts
 │   │   └── types.ts
 │   └── test/
-│       └── extension.test.ts
+│       ├── extension.test.ts
+│       ├── completionPipeline.test.ts
+│       ├── providers.test.ts
+│       ├── promptBuilder.test.ts
+│       ├── transports.test.ts
+│       ├── usage.test.ts
+│       ├── mockProviderServer.ts
+│       └── …
+├── media/
+│   ├── dashboard.html
+│   ├── dashboard.css
+│   ├── dashboard.js
+│   └── icon.svg
+├── scripts/
+│   ├── benchmark-latency.js
+│   └── copy-grammar.js
+├── grammars/
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── README.md
+├── ROADMAP.md
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.mjs
 ├── vsc-extension-quickstart.md
-├── grammars/
-├── scripts/
 └── .vscode/
 ```
 
 ---
 
+## Commands
+
+Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type **Textify**:
+
+| Command | What it does |
+| --- | --- |
+| **Textify: Show Usage** | Session and all-time usage report (`/cost` style) in the Textify output channel |
+| **Textify: Reset Usage Metrics** | Clear this session's or all-time usage |
+| **Textify: Measure Completion Latency** | Send 5 small requests to the active provider and report cold/warm timings |
+| **Textify: Edit Workspace Instructions** | Open (or create) `.textify/instructions.md` |
+
+---
+
 ## Settings
 
-All settings live under the `textify.*` namespace.
+All settings live under the `textify.*` namespace. Most can be changed from the Textify panel.
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -261,9 +418,21 @@ All settings live under the `textify.*` namespace.
 | `textify.groqApiKey` | `""` | Groq API key |
 | `textify.fireworksApiKey` | `""` | Fireworks API key |
 | `textify.geminiApiKey` | `""` | Gemini API key |
-| `textify.model` | `"qwen/qwen3-32b"` | Active model for completions |
+| `textify.anthropicApiKey` | `""` | Anthropic (Claude) API key |
+| `textify.customProviders` | `[]` | Custom OpenAI-/Anthropic-compatible providers (managed from the panel) |
+| `textify.provider` | `"auto"` | `auto`, a builtin id, or `custom:<id>` |
+| `textify.model` | `"qwen/qwen3-32b"` | Active model for completions (falls back to the provider's default if incompatible) |
 | `textify.maxTokens` | `500` | Maximum generated output tokens |
-| `textify.CompletionCacheMaxEntries` | `100` | Max completion cache entries |
+| `textify.temperature` | `0.1` | Sampling temperature (ignored by Claude models that reject sampling params) |
+| `textify.customInstructions` | `""` | Instructions added to the system prompt |
+| `textify.languageInstructions` | `{}` | Per-language instructions keyed by language id |
+| `textify.systemPromptMode` | `"append"` | `append` to or `replace` the built-in guidance |
+| `textify.debounceMs` | `50` | Wait after the last keystroke before requesting (0 disables) |
+| `textify.debugLogging` | `false` | Log full prompts to the output channel |
+| `textify.showUsageInStatusBar` | `true` | Show session tokens and cost in the status bar |
+| `textify.modelPricing` | `{}` | Your prices (USD per 1M tokens), keyed `"<provider>:<model>"` or `"<model>"`, e.g. `{ "groq:llama-3.3-70b-versatile": { "input": 0.59, "output": 0.79 } }` |
+| `textify.fetchPricingCatalog` | `true` | Download OpenRouter's public price list (no key or code sent) to estimate cost for any provider |
+| `textify.completionCacheMaxEntries` | `100` | Max completion cache entries |
 | `textify.completionCacheTtlMs` | `30000` | Completion cache expiry time in milliseconds |
 | `textify.lspCacheMaxEntries` | `100` | Max LSP service cache entries |
 
@@ -289,9 +458,14 @@ npm run compile          # tsc -p ./  (src/ -> out/)
 npm run watch            # tsc -watch -p ./
 npm run lint             # eslint src
 npm run test             # compiles, lints, then runs vscode-test
+node scripts/benchmark-latency.js --mock   # latency benchmark against a local mock server (after compile)
 ```
 
 Press `F5` in VS Code to launch an Extension Development Host and try changes locally.
+
+Tests don't need API keys: transport, pricing, and end-to-end completion tests run against
+`src/test/mockProviderServer.ts`, a local server that speaks both the OpenAI-compatible and Anthropic streaming
+formats.
 
 ---
 

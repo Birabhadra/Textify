@@ -9,6 +9,23 @@ import { PromptBuilder } from '../services/promptBuilder';
 import { DeduplicationService } from '../services/deduplicationService';
 import { DeletionDecoration } from '../ui/deletionDecoration';
 import { getConfig } from '../services/configurationService';
+import { InstructionsService } from '../services/instructionsService';
+import { ModelRefusalError } from '../api/transports';
+import { formatSample, latencyTracker } from '../utils/latencyTracker';
+import { UsageTracker } from '../services/usageTracker';
+
+interface ApiCallResult {
+    text: string;
+    ttftMs: number;
+    requestMs: number;
+}
+
+function delay(ms: number, token: vscode.CancellationToken): Promise<void> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => { listener.dispose(); resolve(); }, ms);
+        const listener = token.onCancellationRequested(() => { clearTimeout(timer); listener.dispose(); resolve(); });
+    });
+}
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private readonly outputChannel: vscode.OutputChannel;
@@ -23,17 +40,38 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     private lastCompletionText='';
     private lastCompletionPosition:vscode.Position|null=null;
     private lastCompletionUri:string|null=null;
+    private readonly instructionsService:InstructionsService;
+    private readonly disposables:vscode.Disposable[]=[];
 
 
-    constructor(astService:ASTService,outputChannel: vscode.OutputChannel) {
+    private readonly usageTracker:UsageTracker;
+
+    constructor(astService:ASTService,outputChannel: vscode.OutputChannel,instructionsService:InstructionsService,usageTracker:UsageTracker=new UsageTracker()) {
         this.outputChannel = outputChannel;
-        this.apiclient = new ApiClient(outputChannel);
+        this.usageTracker=usageTracker;
+        this.apiclient = new ApiClient(outputChannel,usageTracker);
         this.intentTracker=new IntentTracker();
         this.completionCache=new CompletionCache();
         this.promptBuilder=new PromptBuilder();
         this.contextGatherer=new ContextGatherer(astService,this.intentTracker);
         this.deDuplicationService=new DeduplicationService();
         this.deletionDecoration=new DeletionDecoration();
+        this.instructionsService=instructionsService;
+        this.disposables.push(
+            // Warm the provider connection as soon as the user types after a pause, so TLS setup
+            // overlaps with the debounce + context gathering instead of delaying the first token.
+            vscode.workspace.onDidChangeTextDocument((e)=>{
+                if(getConfig().enabled && e.document===vscode.window.activeTextEditor?.document){
+                    this.apiclient.prewarm();
+                }
+            }),
+            instructionsService.onDidChange(()=>this.completionCache.clear())
+        );
+        this.apiclient.prewarm(true);
+    }
+
+    getApiClient():ApiClient{
+        return this.apiclient;
     }
     getPendingEdit():ReplacementEdit|null{
         return this.pendingCompletion?.edit?? null;
@@ -54,7 +92,14 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
                 return pendingCompletionResult;
             }
             //stage 2 
-            const editHistoryHash=this.intentTracker.computeHash();
+            // Everything besides document content/position that changes what the model would say.
+            const activeProvider=this.apiclient.getActiveProvider();
+            const editHistoryHash=[
+                this.intentTracker.computeHash(),
+                this.instructionsService.hash(document),
+                activeProvider?.id ?? 'none',
+                this.apiclient.getActiveModel(activeProvider)
+            ].join(':');
             const cachedResult=this.tryCachedCompletion(
                 document,position,editHistoryHash
             );
@@ -67,19 +112,47 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             if (tryContinuePredictionResult !== undefined){
                 return tryContinuePredictionResult;
             }
+            if(!activeProvider){
+                this.log('No provider configured; add an API key in the Textify settings panel');
+                return null;
+            }
+
+            // Wait out bursts of typing: each aborted request also tears down its pooled socket.
+            const debounceStart=performance.now();
+            const debounceMs=getConfig().debounceMs;
+            if(debounceMs>0 && context.triggerKind===vscode.InlineCompletionTriggerKind.Automatic){
+                await delay(debounceMs,token);
+                if(token.isCancellationRequested){
+                    return null;
+                }
+            }
+            const pipelineStart=performance.now();
+
             const completionContext =await this.contextGatherer.gatherContext(document,position);
-            const messages=this.promptBuilder.buildPrompt(completionContext);
-            this.log(`completion context:${JSON.stringify(messages)}`);
+            const contextDone=performance.now();
+            const messages=this.promptBuilder.buildPrompt(completionContext,this.instructionsService.resolve(document));
+            const promptDone=performance.now();
+            if(getConfig().debugLogging){
+                this.log(`completion context:${JSON.stringify(messages)}`);
+            }
             if (token.isCancellationRequested){
                 this.log('Request cancelled');
                 return null;
             }
             let completion='';
+            let apiResult:ApiCallResult;
             try {
-                completion=await this.callCompletionApi(messages,token);
-                
+                apiResult=await this.callCompletionApi(messages,token);
+                completion=apiResult.text;
             }catch(error){
-                this.log(`Api Error: ${error}`);
+                if(error instanceof ModelRefusalError){
+                    this.log('Model declined the request; discarding completion');
+                }else if(!token.isCancellationRequested){
+                    this.log(`Api Error: ${error}`);
+                }
+                return null;
+            }
+            if(token.isCancellationRequested){
                 return null;
             }
 
@@ -102,7 +175,22 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             }
             this.completionCache.set(document,position,editHistoryHash,edit);
 
+            const sample={
+                debounceMs:pipelineStart-debounceStart,
+                contextMs:contextDone-pipelineStart,
+                promptMs:promptDone-contextDone,
+                ttftMs:apiResult.ttftMs,
+                requestMs:apiResult.requestMs,
+                totalMs:performance.now()-pipelineStart,
+                provider:activeProvider.id,
+                model:this.apiclient.getActiveModel(activeProvider),
+                timestamp:Date.now()
+            };
+            latencyTracker.record(sample);
+            this.log(`latency ${formatSample(sample)}`);
 
+
+            this.usageTracker.recordSuggestionShown(false);
             return this.activateCompletion(document,edit);
 
         } catch (error: any) {
@@ -185,12 +273,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
     private tryCachedCompletion(document:vscode.TextDocument,position:vscode.Position,editHistory:string):vscode.InlineCompletionList|undefined{
         const cachedEdit=this.completionCache.get(document,position,editHistory);
-
-        this.log(`cache hit ${cachedEdit?.insertText}`);
         if(!cachedEdit){
             return undefined;
         }
+        this.log('cache hit');
 
+        this.usageTracker.recordSuggestionShown(true);
         return this.activateCompletion(document,cachedEdit);
 
     }
@@ -286,19 +374,28 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
     private async callCompletionApi(
         messages: ChatMessage [],token:vscode.CancellationToken
-    ){
-        const generator = await this.apiclient.complete(messages);
-        let result = '';
-
-        for await (const chunk of generator) {
-            if (token.isCancellationRequested) {
-                this.apiclient.cancel();
-                break;
+    ):Promise<ApiCallResult>{
+        const start=performance.now();
+        let firstTokenAt=0;
+        const cancelListener=token.onCancellationRequested(()=>this.apiclient.cancel());
+        try{
+            const generator = await this.apiclient.complete(messages);
+            let text = '';
+            for await (const chunk of generator) {
+                if (!firstTokenAt){
+                    firstTokenAt=performance.now();
+                }
+                if (token.isCancellationRequested) {
+                    this.apiclient.cancel();
+                    break;
+                }
+                text += chunk;
             }
-            result += chunk;
+            const end=performance.now();
+            return {text,ttftMs:(firstTokenAt||end)-start,requestMs:end-start};
+        }finally{
+            cancelListener.dispose();
         }
-        return result;
-
     }
 
     private log(message: string): void {
@@ -306,6 +403,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
     }
 
     dispose():void{
+        this.disposables.forEach(d=>d.dispose());
         this.deletionDecoration.dispose();
         this.completionCache.dispose();
         this.apiclient.dispose();

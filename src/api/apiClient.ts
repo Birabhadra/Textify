@@ -1,69 +1,121 @@
 import * as vscode from "vscode";
 import { getConfig } from "../services/configurationService";
-import { ApiProvider, getProvider, PROVIDERS } from "./providers";
-import { ChatStreamChunk,ChatMessage} from "../utils/types";
+import {
+    ProviderDefinition,
+    getProviderApiKey,
+    resolveActiveProvider,
+    resolveModel
+} from "./providers";
+import { ChatMessage } from "../utils/types";
+import { streamAnthropic, streamOpenAICompatible, TokenUsage, TransportRequest } from "./transports";
+import { RequestOutcome, UsageTracker } from "../services/usageTracker";
+
+export interface CompleteOptions {
+    /** Use this provider instead of the configured one (e.g. "Test connection"). */
+    provider?: ProviderDefinition;
+    model?: string;
+    maxTokens?: number;
+    /** Independent request: don't cancel/replace the in-flight completion request. */
+    detached?: boolean;
+    signal?: AbortSignal;
+}
+
+// Node's fetch keeps idle sockets for ~4s. Re-open the TLS connection when the user starts typing
+// after a pause so the completion request doesn't pay for DNS + TCP + TLS on the critical path.
+const PREWARM_IDLE_MS = 3000;
 
 export class ApiClient implements vscode.Disposable{
     private readonly outputChannel:vscode.OutputChannel;
     private pendingRequest: AbortController|null=null;
-    constructor(outputChannel:vscode.OutputChannel){
+    private lastNetworkActivity=0;
+    private prewarmInFlight=false;
+
+    constructor(outputChannel:vscode.OutputChannel,private readonly usageTracker?:UsageTracker){
         this.outputChannel=outputChannel;
     }
 
-    getActiveProvider(): ApiProvider|null{
-        const config=getConfig();
-        const selection=config.provider;
+    getActiveProvider(): ProviderDefinition|null{
+        return resolveActiveProvider(getConfig());
+    }
 
-        if (selection !== 'auto') {
-            const provider=getProvider(selection);
-            return provider && provider.apiKeyConfigKey && config[provider.apiKeyConfigKey] ? selection : null;
-        }
-
-        for (const provider of PROVIDERS) {
-            if (config[provider.apiKeyConfigKey]) {return provider.id;}
-        }
-
-        return null;
+    /** The model that will actually be sent for the active provider. */
+    getActiveModel(provider:ProviderDefinition|null=this.getActiveProvider()):string{
+        return provider ? resolveModel(provider,getConfig().model) : getConfig().model;
     }
 
     async complete(
         messages:ChatMessage[],
+        options:CompleteOptions={}
     ): Promise<AsyncGenerator<string,void,unknown>>{
-        const providerId=this.getActiveProvider();
-        if (!providerId){
+        const provider=options.provider ?? this.getActiveProvider();
+        if (!provider){
             throw new Error("No API key configured");
         }
-        this.cancel();
-        this.pendingRequest=new AbortController();
-
         const configService=getConfig();
 
-        const maxTokens=configService.maxTokens;
-        const provider=getProvider(providerId)!;
-
-        const model=configService.model;
-
-        const body: Record<string,unknown>={
-            model,
-            messages,
-            max_tokens:maxTokens,
-            stream:true,
-            temperature:0.1
-
-        };
-
-        if (provider.extraBodyFields) {
-            Object.assign(body, provider.extraBodyFields());
+        let signal:AbortSignal;
+        if (options.detached){
+            signal=options.signal ?? new AbortController().signal;
+        }else{
+            this.cancel();
+            this.pendingRequest=new AbortController();
+            signal=this.pendingRequest.signal;
         }
 
-        this.log(`[${providerId}] Request:model=${model},max_token=${maxTokens}`);
-        return this.streamRequest(
-            provider.endPoint,
-            body,
-            configService[provider.apiKeyConfigKey],
-            this.pendingRequest.signal
-        );
+        const model=options.model ?? resolveModel(provider,configService.model);
+        const usage:TokenUsage[]=[];
+        const request:TransportRequest={
+            endpoint:provider.endPoint,
+            apiKey:getProviderApiKey(provider,configService),
+            model,
+            messages,
+            maxTokens:options.maxTokens ?? configService.maxTokens,
+            temperature:configService.temperature,
+            signal,
+            extraBody:provider.extraBodyFields?.(),
+            onUsage:(entries)=>usage.push(...entries)
+        };
 
+        this.log(`[${provider.id}] Request: model=${model}, max_tokens=${request.maxTokens}`);
+        this.lastNetworkActivity=Date.now();
+        return this.trackActivity(
+            provider.format==='anthropic' ? streamAnthropic(request) : streamOpenAICompatible(request),
+            signal,
+            usage,
+            provider.id
+        );
+    }
+
+    /**
+     * Opens (or refreshes) a pooled connection to the active provider's host, off the critical path.
+     * Cheap: a HEAD request whose status we ignore.
+     */
+    prewarm(force=false):void{
+        if (this.prewarmInFlight){
+            return;
+        }
+        if (!force && Date.now()-this.lastNetworkActivity<PREWARM_IDLE_MS){
+            return;
+        }
+        const provider=this.getActiveProvider();
+        if (!provider){
+            return;
+        }
+        let origin:string;
+        try{
+            origin=new URL(provider.endPoint).origin;
+        }catch{
+            return;
+        }
+        this.prewarmInFlight=true;
+        this.lastNetworkActivity=Date.now();
+        fetch(origin,{method:'HEAD',signal:AbortSignal.timeout(5000)})
+            .then((response)=>response.body?.cancel())
+            .catch(()=>undefined)
+            .finally(()=>{
+                this.prewarmInFlight=false;
+                this.lastNetworkActivity=Date.now();
+            });
     }
 
     cancel():void{
@@ -73,76 +125,26 @@ export class ApiClient implements vscode.Disposable{
         }
     }
 
-    private async* streamRequest(
-        endpoint:string,
-        body:Record<string,unknown>,
-        apiKey:string,
-        signal:AbortSignal
-    ):AsyncGenerator<string,void,unknown>{
-        const response=await fetch(endpoint,{
-            method:"POST",
-            headers:{
-                'Authorization':`Bearer ${apiKey}`,
-                'Content-Type':'application/json'
-            },
-            body:JSON.stringify(body),
-            signal,
-
-        });
-        if(!response.ok){
-            const errorText=await response.text();
-            throw new Error(`API Error ${response.status}:${errorText}`);
-        }
-
-        if(!response.body){
-            throw new Error('No response body');
-        }
-
-        const reader=response.body.getReader();
-        const decoder=new TextDecoder();
-
-        let buffer='';
-
+    private async* trackActivity(source:AsyncGenerator<string,void,unknown>,signal:AbortSignal,usage:TokenUsage[],providerId:string):AsyncGenerator<string,void,unknown>{
+        const start=performance.now();
+        // Stays 'cancelled' if the consumer stops early (break / abort) without an error.
+        let outcome:RequestOutcome='cancelled';
         try{
-            while(true){
-                const {done,value}=await reader.read();
-                if (done){
-                    break;
-                }
-                buffer+= decoder.decode(value,{stream:true});
-                const lines=buffer.split('\n');
-
-                buffer=lines.pop() || '';
-
-                for(const line of lines){
-                    if(line.startsWith('data: ')){
-                        const data=line.slice(6);
-
-                        if(data ==='[DONE]'){
-                            return;
-                        }
-                        try{
-                            const chunk=JSON.parse(data) as ChatStreamChunk;
-                            if (chunk.choices && chunk.choices.length > 0 ){
-                                const content =chunk.choices[0].delta?.content;
-                                if (content){
-                                    yield content;
-                                }
-                            }
-                        }catch(error){
-                            this.log(`parse error :${error}`);
-
-                        }
-
-
-                    }
-                }
+            for await (const chunk of source){
+                this.lastNetworkActivity=Date.now();
+                yield chunk;
             }
-
+            outcome='completed';
+        }catch(error){
+            outcome=signal.aborted ? 'cancelled' : 'failed';
+            throw error;
         }finally{
-            reader.releaseLock();
+            this.lastNetworkActivity=Date.now();
+            // Usage arrives from the transport's own `finally`, which has run by now.
+            this.usageTracker?.recordRequest(outcome,performance.now()-start,usage,providerId);
         }
     }
+
     private log(message:string):void{
         this.outputChannel.appendLine(`[ApiClient] ${message}`);
     }

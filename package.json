@@ -2,7 +2,7 @@
   "name": "textify",
   "displayName": "Textify",
   "description": "Repository-aware AI code completion for VS Code, combining LLMs, AST analysis, LSP context, caching, and intelligent code retrieval.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "BirabhadraSahoo",
   "engines": {
     "vscode": "^1.125.0"
@@ -73,9 +73,8 @@
         },
         "textify.provider": {
           "type": "string",
-          "enum": ["auto", "openrouter", "groq", "fireworks", "gemini"],
           "default": "auto",
-          "description": "Which provider to use. 'auto' picks the first configured API key (openrouter > groq > fireworks > gemini)"
+          "description": "Which provider to use: 'auto', a builtin id (openrouter, groq, fireworks, gemini, anthropic), or 'custom:<id>' for an entry in textify.customProviders. 'auto' picks the first configured API key (openrouter > groq > fireworks > gemini > anthropic > custom providers)."
         },
         "textify.fireworksApiKey": {
           "type": "string",
@@ -97,6 +96,64 @@
           "default": "",
           "description": "Gemini Api Key"
         },
+        "textify.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic (Claude) API key"
+        },
+        "textify.customProviders": {
+          "type": "array",
+          "default": [],
+          "description": "Custom OpenAI-compatible or Anthropic-compatible providers (e.g. Together, DeepSeek, Ollama, LM Studio, a company proxy). Manage these from the Textify settings panel.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "baseUrl",
+              "format",
+              "models"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Stable identifier; select it with textify.provider = \"custom:<id>\""
+              },
+              "name": {
+                "type": "string"
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "Base URL or full endpoint, e.g. https://api.together.xyz/v1 or http://localhost:11434/v1"
+              },
+              "apiKey": {
+                "type": "string",
+                "default": "",
+                "description": "Optional for local servers"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "anthropic",
+                  "local"
+                ],
+                "enumDescriptions": [
+                  "OpenAI-compatible /chat/completions",
+                  "Anthropic Messages API (/v1/messages)",
+                  "Local model server (Ollama, LM Studio, llama.cpp, vLLM); no API key needed"
+                ]
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            }
+          }
+        },
         "textify.model": {
           "type": "string",
           "default": "qwen/qwen3-32b",
@@ -108,6 +165,47 @@
           "minimum": 50,
           "maximum": 5000,
           "description": "Maximum tokens to generate"
+        },
+        "textify.temperature": {
+          "type": "number",
+          "default": 0.1,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature. Lower is more deterministic. Ignored by Claude models that do not accept sampling parameters (Opus 4.7+, Sonnet 5)."
+        },
+        "textify.customInstructions": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "markdownDescription": "Instructions added to the system prompt for every completion, e.g. coding conventions or \"prefer async/await\". A workspace `.textify/instructions.md` file is also picked up automatically and takes precedence."
+        },
+        "textify.languageInstructions": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "markdownDescription": "Per-language instructions keyed by VS Code language id, e.g. `{ \"python\": \"Use type hints.\" }`."
+        },
+        "textify.systemPromptMode": {
+          "type": "string",
+          "enum": [
+            "append",
+            "replace"
+          ],
+          "default": "append",
+          "enumDescriptions": [
+            "Add your instructions after the built-in guidance",
+            "Use your instructions instead of the built-in guidance (the output-format rules are always kept)"
+          ],
+          "description": "How custom instructions combine with the built-in system prompt."
+        },
+        "textify.debounceMs": {
+          "type": "number",
+          "default": 50,
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Wait this long after the last keystroke before requesting a completion. Avoids firing (and aborting) a request per keystroke. 0 disables."
         },
         "textify.useAst": {
           "type": "boolean",
@@ -129,7 +227,52 @@
           "default": true,
           "description": "Trim/reject completions that duplicate code already above or below the cursor"
         },
-        "textify.CompletionCacheMaxEntries": {
+        "textify.debugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log full prompts to the Textify output channel (verbose; slows completions slightly)."
+        },
+        "textify.showUsageInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show session token usage and cost in the status bar."
+        },
+        "textify.modelPricing": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Your prices in USD per 1M tokens, for any provider. Key by `\"<provider>:<model>\"` (e.g. `\"groq:llama-3.3-70b-versatile\"`, `\"custom:together:qwen-coder\"`) or by bare model name, e.g. `{ \"groq:llama-3.3-70b-versatile\": { \"input\": 0.59, \"output\": 0.79 } }`. Optional `cacheRead` / `cacheWrite`. Easiest to edit from the Usage section of the Textify panel. These win over list prices and the catalog; a cost the provider reports itself (OpenRouter) wins over everything.",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "input",
+              "output"
+            ],
+            "properties": {
+              "input": {
+                "type": "number",
+                "minimum": 0
+              },
+              "output": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cacheRead": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cacheWrite": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "textify.fetchPricingCatalog": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Download OpenRouter's public model price list (no API key or code is sent) to estimate cost for providers that don't report it. Refreshed at most once a day."
+        },
+        "textify.completionCacheMaxEntries": {
           "type": "number",
           "default": 100,
           "minimum": 10,
@@ -151,7 +294,29 @@
           "description": "Completion Cache TTl in milliseconds"
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "textify.benchmarkLatency",
+        "title": "Measure Completion Latency",
+        "category": "Textify"
+      },
+      {
+        "command": "textify.openInstructions",
+        "title": "Edit Workspace Instructions",
+        "category": "Textify"
+      },
+      {
+        "command": "textify.showUsage",
+        "title": "Show Usage",
+        "category": "Textify"
+      },
+      {
+        "command": "textify.resetUsage",
+        "title": "Reset Usage Metrics",
+        "category": "Textify"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -160,7 +325,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "package":"vsce package"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/emscripten": "^1.41.5",
@@ -180,7 +345,6 @@
     "tree-sitter-typescript": "^0.23.2",
     "typescript": "6.0.3",
     "typescript-eslint": "^8.61.1"
-
   },
   "overrides": {
     "diff": "^8.0.4",
@@ -199,6 +363,7 @@
     "tree-sitter-typescript@0.23.2": true
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "web-tree-sitter": "^0.26.12"
   }
 }

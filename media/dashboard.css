@@ -131,3 +131,260 @@ button.secondary:hover {
     display: flex;
     gap: 8px;
 }
+
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 60px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    padding: 4px 6px;
+    font-family: var(--vscode-editor-font-family, inherit);
+    font-size: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+button.small {
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 10px;
+}
+
+.muted {
+    color: var(--vscode-descriptionForeground);
+    font-weight: normal;
+}
+
+.status {
+    white-space: pre-line;
+    font-size: 11px;
+    margin-bottom: 10px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.status:empty {
+    display: none;
+}
+
+.status.ok {
+    color: var(--vscode-testing-iconPassed, var(--vscode-foreground));
+}
+
+.status.error {
+    color: var(--vscode-errorForeground);
+}
+
+.stats {
+    font-size: 11px;
+    margin-bottom: 10px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.custom-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.custom-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 2px;
+}
+
+.custom-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.custom-text .description {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-form {
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 2px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.custom-list > .description,
+.field > .description:first-child {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.segmented {
+    display: flex;
+    margin-bottom: 8px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.segmented .segment {
+    flex: 1;
+    border-radius: 0;
+    padding: 4px 8px;
+    background-color: transparent;
+    color: var(--vscode-foreground);
+}
+
+.segmented .segment.active {
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.metric {
+    padding: 6px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 2px;
+    min-width: 0;
+}
+
+.metric-value {
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.metric-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.metric-detail {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.usage-models {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.usage-row .description,
+.usage-models > .description {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.usage-model {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--vscode-editor-font-family, inherit);
+}
+
+.usage-model span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.usage-cost {
+    font-variant-numeric: tabular-nums;
+    flex: none;
+}
+
+.subhead {
+    font-size: 11px;
+    font-weight: 600;
+    margin: 14px 0 4px;
+}
+
+.subhead .muted {
+    font-weight: normal;
+    margin-left: 4px;
+}
+
+.pricing-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.price-row {
+    padding: 6px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 2px;
+}
+
+.price-row.unpriced {
+    border-color: var(--vscode-editorWarning-foreground, var(--vscode-widget-border));
+}
+
+.price-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.price-name {
+    font-family: var(--vscode-editor-font-family, inherit);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.price-row .description {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.price-form {
+    margin-top: 6px;
+}
+
+.price-fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
